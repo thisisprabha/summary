@@ -19,9 +19,37 @@ swift build -c release -Xswiftc -parse-as-library
 echo "📁 Creating app bundle..."
 mkdir -p MeetingRecorder.app/Contents/MacOS
 mkdir -p MeetingRecorder.app/Contents/Resources
+mkdir -p MeetingRecorder.app/Contents/Frameworks
 
 # Copy executable
 cp .build/release/MeetingRecorderApp MeetingRecorder.app/Contents/MacOS/
+
+# Copy frameworks (if they exist in the build)
+echo "📚 Copying frameworks..."
+if [ -d ".build/release" ]; then
+    # Find and copy Sparkle framework
+    find .build -name "Sparkle.framework" -type d 2>/dev/null | head -1 | while read framework; do
+        if [ -n "$framework" ]; then
+            echo "Found Sparkle at: $framework"
+            cp -R "$framework" MeetingRecorder.app/Contents/Frameworks/
+        fi
+    done
+    
+    # Find and copy any other frameworks
+    find .build -name "*.framework" -type d 2>/dev/null | while read framework; do
+        framework_name=$(basename "$framework")
+        if [ "$framework_name" != "Sparkle.framework" ]; then
+            echo "Found framework: $framework_name"
+            cp -R "$framework" MeetingRecorder.app/Contents/Frameworks/ 2>/dev/null || true
+        fi
+    done
+fi
+
+# Fix framework paths and code signing
+echo "🔗 Fixing framework paths..."
+if [ -f "MeetingRecorder.app/Contents/Frameworks/Sparkle.framework/Sparkle" ]; then
+    install_name_tool -change "@rpath/Sparkle.framework/Versions/B/Sparkle" "@executable_path/../Frameworks/Sparkle.framework/Sparkle" MeetingRecorder.app/Contents/MacOS/MeetingRecorderApp 2>/dev/null || true
+fi
 
 # Create Info.plist for the app bundle
 cat > MeetingRecorder.app/Contents/Info.plist << 'EOF'
@@ -85,6 +113,9 @@ if [ "$1" = "sign" ]; then
 fi
 
 echo "✅ Build complete! App created at MeetingRecorder.app"
+echo ""
+echo "🔍 Checking for missing frameworks..."
+otool -L MeetingRecorder.app/Contents/MacOS/MeetingRecorderApp | grep -E "(Sparkle|Starscream)" || echo "No framework dependencies found in executable"
 echo ""
 echo "To install:"
 echo "1. Copy MeetingRecorder.app to /Applications/"

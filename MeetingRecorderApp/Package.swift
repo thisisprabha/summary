@@ -13,15 +13,17 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.5.0"),
-        .package(url: "https://github.com/daltoniam/Starscream.git", from: "4.0.0"),
+        // Dependencies temporarily removed for basic functionality
+        // .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.5.0"),
+        // .package(url: "https://github.com/daltoniam/Starscream.git", from: "4.0.0"),
     ],
     targets: [
         .executableTarget(
             name: "MeetingRecorderApp",
             dependencies: [
-                "Sparkle",
-                "Starscream"
+                // Dependencies temporarily removed
+                // "Sparkle",
+                // "Starscream"
             ]
         ),
     ]

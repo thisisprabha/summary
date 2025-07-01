@@ -1,4 +1,0 @@
-module Starscream {
-    header "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Starscream-Swift.h"
-    requires objc
-}

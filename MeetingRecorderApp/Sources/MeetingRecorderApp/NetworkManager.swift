@@ -1,5 +1,5 @@
 import Foundation
-import Starscream
+// import Starscream // Temporarily disabled
 
 class NetworkManager: ObservableObject {
     static let shared = NetworkManager()
@@ -7,7 +7,7 @@ class NetworkManager: ObservableObject {
     @Published var serverURL: String = "http://192.168.31.58:9000"
     @Published var isConnected = false
     
-    private var socket: WebSocket?
+    // private var socket: WebSocket? // Temporarily disabled
     private var currentSessionId: String?
     
     var onProgressUpdate: ((Double, String) -> Void)?
@@ -62,11 +62,14 @@ class NetworkManager: ObservableObject {
                 return .failure(NetworkError.serverError)
             }
             
+            // WebSocket functionality temporarily disabled
+            /*
             // Start WebSocket connection for progress updates
             if let sessionId = result.sessionId {
                 currentSessionId = sessionId
                 connectWebSocket(sessionId: sessionId)
             }
+            */
             
             return .success(result.summary ?? "Processing...")
             
@@ -87,8 +90,9 @@ class NetworkManager: ObservableObject {
         return body
     }
     
-    // MARK: - WebSocket Connection
+    // MARK: - WebSocket Connection (Temporarily Disabled)
     
+    /*
     private func connectWebSocket(sessionId: String) {
         guard let socketURL = URL(string: serverURL.replacingOccurrences(of: "http", with: "ws")) else { return }
         
@@ -115,6 +119,7 @@ class NetworkManager: ObservableObject {
             socket?.write(string: "join_session:\(string)")
         }
     }
+    */
     
     // MARK: - Health Check
     
@@ -160,8 +165,9 @@ class NetworkManager: ObservableObject {
     }
 }
 
-// MARK: - WebSocket Delegate
+// MARK: - WebSocket Delegate (Temporarily Disabled)
 
+/*
 extension NetworkManager: WebSocketDelegate {
     func didReceive(event: WebSocketEvent, client: WebSocketClient) {
         switch event {
@@ -206,6 +212,7 @@ extension NetworkManager: WebSocketDelegate {
         }
     }
 }
+*/
 
 // MARK: - Data Models
 

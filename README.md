@@ -1,198 +1,212 @@
-# 🎤 Meeting Recorder & Summarizer
+# 🎤 Meeting Recorder - Native macOS App
 
-A web-based application that records audio, transcribes it using Whisper.cpp, and generates AI-powered summaries using OpenAI's GPT-4o-mini.
-
-![Meeting Recorder Interface](https://img.shields.io/badge/Status-Working-brightgreen)
-![Python](https://img.shields.io/badge/Python-3.8+-blue)
-![Flask](https://img.shields.io/badge/Flask-2.3.3-blue)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-green)
+A native macOS menu bar application for recording, transcribing, and summarizing meetings using your DietPi server with whisper.cpp.
 
 ## ✨ Features
 
-- 🎙️ **Browser-based Recording**: Direct microphone recording with real-time feedback
-- 📁 **File Upload**: Support for multiple audio formats (WAV, MP3, M4A, OGG, WebM)
-- 🤖 **Offline Transcription**: Using Whisper.cpp for privacy-focused transcription
-- 📝 **AI Summarization**: Intelligent summaries using OpenAI GPT-4o-mini
-- 📱 **Mobile Responsive**: Works seamlessly on phones and tablets
-- 🗂️ **History Management**: View and manage all previous summaries
-- 🔒 **Privacy Focused**: Audio processing happens locally with Whisper.cpp
+- 🎤 **High-quality audio recording** (16kHz, 16-bit, Mono - optimized for Whisper)
+- 📱 **Menu bar integration** - Always accessible from the status bar
+- 🔴 **Visual recording indicators** - Know when you're recording
+- 📊 **Real-time progress** - See transcription progress live
+- 🔔 **Native notifications** - Summary ready notifications
+- 📝 **Download transcripts** - Save full transcriptions locally
+- ⚙️ **Settings panel** - Configure server URL and preferences
+- 🔄 **Auto-updater** - Automatic app updates via Sparkle
+- 🌐 **Cross-network support** - Works from office to access home server
 
 ## 🚀 Quick Start
 
-### Method 1: Automated Setup (Recommended)
-```bash
-git clone https://github.com/thisisprabha/summary.git
-cd summary
-./start.sh
-```
-
-### Method 2: Manual Setup
-```bash
-git clone https://github.com/thisisprabha/summary.git
-cd summary
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
-
-Then open `http://localhost:9000` in your browser.
-
-## 📋 Prerequisites
-
-- **Python 3.8+**
-- **FFmpeg** (for audio conversion)
-- **OpenAI API Key** (for summarization)
-- **Modern Web Browser** (Chrome, Firefox, Safari, Edge)
-
-## 🔧 Installation
-
-### 1. System Dependencies
-
-**macOS:**
-```bash
-brew install ffmpeg
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo apt update
-sudo apt install ffmpeg build-essential
-```
-
-**DietPi/Raspberry Pi:**
-```bash
-sudo apt update
-sudo apt install ffmpeg build-essential git cmake
-```
-
-### 2. Whisper.cpp Setup (Required for Transcription)
+### 1. Build the App
 
 ```bash
-git clone https://github.com/ggerganov/whisper.cpp.git
-cd whisper.cpp
-make
-bash ./models/download-ggml-model.sh base
-ln -sf models/ggml-base.bin models/for-tests-ggml-base.bin
-cd ..
+cd MeetingRecorderApp
+./build.sh
 ```
 
-### 3. OpenAI API Key
+### 2. Install
 
-Set your OpenAI API key as an environment variable:
 ```bash
-export OPENAI_API_KEY="your-api-key-here"
+# Copy to Applications folder
+cp -r MeetingRecorder.app /Applications/
+
+# Or double-click MeetingRecorder.app to install
 ```
 
-Or edit the key directly in `app.py` (line 18).
+### 3. First Launch
 
-## 🎯 Usage
+1. **Launch the app** - It will appear in your menu bar as a microphone icon
+2. **Allow microphone access** when prompted
+3. **Configure server** - Click the microphone icon → Settings
+4. **Set your DietPi server URL** (e.g., `http://192.168.31.58:9000`)
+5. **Test connection** to verify everything works
 
-1. **Start the Application**
-   ```bash
-   ./start.sh
-   ```
+## 🎯 How to Use
 
-2. **Open Web Interface**
-   - Go to `http://localhost:9000`
-   - Allow microphone permissions when prompted
+### Recording a Meeting
 
-3. **Record or Upload Audio**
-   - **Record**: Click "🔴 Start Recording" → speak → "⏹️ Stop Recording"
-   - **Upload**: Click "📁 Upload Audio File" and select any audio file
+1. **Click** the microphone icon in your menu bar
+2. **Select** "🔴 Start Recording"
+3. **Speak** - The icon will turn red while recording
+4. **Click** "⏹️ Stop Recording" when done
+5. **Wait** - Processing happens automatically
+6. **Get notified** when your summary is ready!
 
-4. **Get AI Summary**
-   - The app automatically transcribes and summarizes your audio
-   - View all summaries in the history section
+### Viewing Results
 
-## 🏗️ Architecture
+- **Recent Summaries** - Click "📋 Recent Summaries" in the menu
+- **Download Transcripts** - Full transcriptions available for download
+- **Copy Summary** - Quick copy to clipboard
 
+## ⚙️ Configuration
+
+### Server Settings
+- **Server URL**: Your DietPi server address
+- **Auto-process**: Automatic upload and processing
+- **Notifications**: Summary ready alerts
+
+### Audio Quality
+- **Sample Rate**: 16kHz (optimal for Whisper)
+- **Channels**: Mono (faster processing)
+- **Format**: WAV PCM (best quality)
+
+## 🔧 Technical Details
+
+### System Requirements
+- **macOS 13.0+** (Ventura or later)
+- **Microphone access** permission
+- **Network access** to your DietPi server
+
+### Architecture
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Browser   │    │  Flask Server   │    │   Whisper.cpp   │
-│                 │───▶│                 │───▶│                 │
-│ - Microphone    │    │ - Audio Upload  │    │ - Transcription │
-│ - File Upload   │    │ - FFmpeg Conv.  │    │ - Local Process │
-│ - UI/UX         │    │ - API Routes    │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   OpenAI API    │
-                       │                 │
-                       │ - GPT-4o-mini   │
-                       │ - Summarization │
-                       │                 │
-                       └─────────────────┘
-```
-
-## 📁 Project Structure
-
-```
-summary/
-├── app.py                 # Main Flask application
-├── static/
-│   └── index.html        # Web interface
-├── requirements.txt      # Python dependencies
-├── start.sh             # Automated startup script
-├── setup_guide.md       # Detailed setup instructions
-├── .gitignore           # Git ignore rules
-└── README.md            # This file
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Mac Menu Bar  │───▶│  DietPi Server   │───▶│  OpenAI/Local   │
+│   Recording App │    │  (whisper.cpp)   │    │  Summarization  │
+│                 │◀───│  Flask + Socket  │◀───│                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-## 🔧 Configuration
+### Dependencies
+- **SwiftUI** - Modern Mac app UI
+- **AVFoundation** - High-quality audio recording
+- **Starscream** - WebSocket communication
+- **Sparkle** - Automatic updates
 
-### Port Configuration
-The app runs on port 9000 by default. To change:
-```python
-# In app.py, line 231
-app.run(host='0.0.0.0', port=YOUR_PORT, debug=True)
+## 🌐 Network Setup
+
+### For Home Network Only
+- No setup needed - just use local IP: `192.168.31.58:9000`
+
+### For Remote Access (Office/Other WiFi)
+
+#### Option 1: Port Forwarding
+1. Login to your home router
+2. Forward port `9000` to `192.168.31.58:9000`
+3. Use your public IP in the app settings
+
+#### Option 2: VPN (Recommended)
+```bash
+# On your DietPi server
+dietpi-software install 172  # WireGuard VPN
+# Follow setup instructions
 ```
 
-### Language Settings
-Change transcription language in `app.py`, line 98:
-```python
-"-l", "auto",  # Change to "en" for English, "ta" for Tamil, etc.
+#### Option 3: Cloud Tunnel
+```bash
+# On your DietPi server
+ngrok http 9000
+# Use the provided public URL
+```
+
+## 🔄 Auto-Updates
+
+The app includes Sparkle framework for automatic updates:
+
+1. **Automatic checks** - Daily update checks
+2. **Secure updates** - Cryptographically signed
+3. **Background downloads** - Non-intrusive
+4. **User control** - Choose when to install
+
+### Setting Up Update Server (Optional)
+1. Create an appcast XML file
+2. Host on your server
+3. Update `SUFeedURL` in Info.plist
+4. Generate signing keys for security
+
+## 🛠️ Development
+
+### Building from Source
+
+```bash
+# Clone the repository
+git clone <your-repo>
+cd MeetingRecorderApp
+
+# Install dependencies (automatic with Swift Package Manager)
+swift package resolve
+
+# Build for development
+swift build
+
+# Build for release
+swift build -c release
+
+# Create app bundle
+./build.sh
+
+# Sign for distribution (optional)
+./build.sh sign
+```
+
+### Project Structure
+```
+MeetingRecorderApp/
+├── Package.swift           # Swift Package Manager config
+├── Sources/
+│   └── MeetingRecorderApp/
+│       ├── main.swift      # App entry point
+│       ├── AppDelegate.swift     # macOS app lifecycle
+│       ├── MenuBarManager.swift  # Menu bar UI
+│       ├── AudioManager.swift    # Recording logic
+│       ├── NetworkManager.swift  # Server communication
+│       ├── SettingsView.swift    # Settings UI
+│       └── SummariesWindow.swift # Summaries UI
+├── build.sh                # Build script
+└── README.md              # This file
 ```
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Microphone Not Working
+1. Check **System Settings → Privacy & Security → Microphone**
+2. Ensure **Meeting Recorder** is enabled
+3. Restart the app after granting permission
 
-1. **Port Already in Use**
-   - The app will show which port is in use
-   - Kill existing processes or change the port
+### Can't Connect to Server
+1. **Test connection** in Settings
+2. Check **server URL** format: `http://IP:9000`
+3. Verify **DietPi server** is running
+4. Check **network connectivity**
 
-2. **Microphone Not Working**
-   - Check browser permissions
-   - Try HTTPS in production
-   - Use file upload as alternative
+### No Audio Recorded
+1. Select correct **input device** in System Settings
+2. Check **microphone levels** in Audio MIDI Setup
+3. Test with **other apps** to verify microphone works
 
-3. **Whisper Not Found**
-   - Run the Whisper.cpp setup commands
-   - Check if the executable exists: `./whisper.cpp/build/bin/whisper-cli`
+### Processing Fails
+1. Check **DietPi server logs**
+2. Verify **whisper.cpp** is working
+3. Test **manual upload** via web interface
 
-4. **Model Not Found**
-   - Download the model: `bash ./whisper.cpp/models/download-ggml-model.sh base`
+## 📝 Changelog
 
-### Health Check
-Visit `http://localhost:9000/health` to check system status.
-
-## 🚀 Deployment
-
-### For Local Use
-The app is ready to run locally with the setup above.
-
-### For DietPi/Raspberry Pi
-1. Copy the project to your device
-2. Follow the same setup steps
-3. Access via `http://[device-ip]:9000`
-
-### Production Considerations
-- Use environment variables for API keys
-- Set up HTTPS for microphone access
-- Configure proper logging
-- Consider using a production WSGI server
+### Version 1.0.0
+- ✅ Initial release
+- ✅ Menu bar recording
+- ✅ Real-time progress
+- ✅ WebSocket integration
+- ✅ Settings panel
+- ✅ Auto-updater support
+- ✅ Download transcripts
 
 ## 🤝 Contributing
 
@@ -204,23 +218,14 @@ The app is ready to run locally with the setup above.
 
 ## 📄 License
 
-This project is open source. Feel free to use, modify, and distribute.
+MIT License - feel free to use and modify!
 
-## 🙏 Acknowledgments
+## 🔗 Related Projects
 
-- **OpenAI** for GPT-4o-mini API
-- **Whisper.cpp** for efficient local transcription
-- **Flask** for the web framework
-- **FFmpeg** for audio processing
-
-## 📞 Support
-
-For issues and questions:
-1. Check the [setup_guide.md](setup_guide.md) for detailed instructions
-2. Review the troubleshooting section above
-3. Check server logs in `app.log`
-4. Open an issue on GitHub
+- **[Meeting Recorder Server](../README.md)** - The DietPi Flask backend
+- **[Whisper.cpp](https://github.com/ggerganov/whisper.cpp)** - Local transcription
+- **[Sparkle Framework](https://sparkle-project.org/)** - Auto-updater
 
 ---
 
-**Made with ❤️ for better meeting productivity** 
+**Happy Recording!** 🎤✨ 

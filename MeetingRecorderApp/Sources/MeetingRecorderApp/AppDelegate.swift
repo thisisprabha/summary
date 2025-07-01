@@ -1,16 +1,16 @@
 import Cocoa
 import SwiftUI
-import Sparkle
+// import Sparkle // Temporarily disabled
 import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menuBarManager: MenuBarManager!
-    private var updaterController: SPUStandardUpdaterController!
+    // private var updaterController: SPUStandardUpdaterController! // Temporarily disabled
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBar()
-        setupAutoUpdater()
+        // setupAutoUpdater() // Temporarily disabled
         requestNotificationPermission()
     }
     
@@ -19,6 +19,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager = MenuBarManager(statusItem: statusItem)
     }
     
+    // Temporarily disabled auto-updater
+    /*
     private func setupAutoUpdater() {
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
@@ -26,6 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             userDriverDelegate: nil
         )
     }
+    */
     
     private func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
