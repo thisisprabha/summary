@@ -82,34 +82,65 @@ c.execute('''CREATE TABLE IF NOT EXISTS summaries
              (id INTEGER PRIMARY KEY, transcription TEXT, summary TEXT, tag TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 conn.commit()
 
-def detect_language_and_select_model(transcription_sample):
+def detect_language_and_select_model(transcription_sample, user_language_hint=None):
     """
     Detect language and select appropriate model for speed optimization
     Returns: (model_path, detected_language)
     """
-    # Simple language detection based on common words/patterns
-    text_lower = transcription_sample.lower()
     
-    # Tamil detection patterns
-    tamil_patterns = ['தமிழ்', 'நான்', 'அது', 'இது', 'என்', 'உங்கள்']
-    
-    # English detection (if mostly ASCII and common English words)
-    english_patterns = ['the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'with', 'by']
-    
-    # Check for Tamil characters or patterns
-    if any(pattern in text_lower for pattern in tamil_patterns) or any(ord(char) > 2944 and ord(char) < 3071 for char in transcription_sample):
-        return "./whisper.cpp/models/ggml-base.bin", "tamil"
-    
-    # Check for English patterns
-    english_score = sum(1 for pattern in english_patterns if pattern in text_lower)
-    if english_score >= 2:  # If multiple English words found
-        # Use tiny model for English (faster)
+    # If user provided language hint, use it
+    if user_language_hint and user_language_hint.lower() in ['tamil', 'ta']:
+        return "./whisper.cpp/models/ggml-base.bin", "ta"
+    elif user_language_hint and user_language_hint.lower() in ['english', 'en']:
         tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
         if os.path.exists(tiny_model):
-            return tiny_model, "english"
+            return tiny_model, "en"
+        return "./whisper.cpp/models/ggml-base.bin", "en"
     
-    # Default to base model for other languages
-    return "./whisper.cpp/models/ggml-base.bin", "auto"
+    # Improved language detection based on character analysis
+    text_lower = transcription_sample.lower()
+    
+    # Tamil Unicode range detection (more comprehensive)
+    tamil_char_count = sum(1 for char in transcription_sample if 0x0B80 <= ord(char) <= 0x0BFF)
+    total_chars = len([c for c in transcription_sample if c.isalnum()])
+    
+    # Tamil detection patterns (expanded)
+    tamil_patterns = [
+        'தமிழ்', 'நான்', 'அது', 'இது', 'என்', 'உங்கள்', 'அவர்', 'இவர்', 
+        'எங்கள்', 'நம்', 'அவள்', 'இவள்', 'செய்', 'வந்த', 'போன', 'வரும்',
+        'உள்ள', 'இருக்க', 'கூட', 'மட்டும்', 'தான்', 'என்று', 'அன்று',
+        'இன்று', 'நாள்', 'மணி', 'நேரம்', 'பேர்', 'விட', 'கொண்ட'
+    ]
+    
+    # English detection patterns
+    english_patterns = ['the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'is', 'are', 'was', 'were']
+    
+    # Calculate Tamil score
+    tamil_pattern_score = sum(1 for pattern in tamil_patterns if pattern in transcription_sample)
+    tamil_unicode_ratio = tamil_char_count / max(total_chars, 1)
+    
+    # Calculate English score
+    english_score = sum(1 for pattern in english_patterns if pattern in text_lower)
+    
+    # Decision logic (more robust)
+    if tamil_unicode_ratio > 0.3 or tamil_pattern_score > 0:  # Any Tamil content
+        logger.debug(f"Tamil detected - Unicode ratio: {tamil_unicode_ratio:.2f}, Pattern score: {tamil_pattern_score}")
+        return "./whisper.cpp/models/ggml-base.bin", "ta"
+    elif english_score >= 2:  # Clear English content
+        logger.debug(f"English detected - Pattern score: {english_score}")
+        tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
+        if os.path.exists(tiny_model):
+            return tiny_model, "en"
+        return "./whisper.cpp/models/ggml-base.bin", "en"
+    else:
+        # If unclear, default to base model with auto detection
+        # but bias towards Tamil if any non-ASCII characters
+        if any(ord(char) > 127 for char in transcription_sample):
+            logger.debug("Non-ASCII characters detected, defaulting to Tamil")
+            return "./whisper.cpp/models/ggml-base.bin", "ta"
+        
+        logger.debug("Language unclear, using auto detection")
+        return "./whisper.cpp/models/ggml-base.bin", "auto"
 
 def create_offline_summary(text):
     """Create summary using offline T5 model"""
@@ -172,6 +203,10 @@ def upload_audio():
         current_session[session_id] = {'status': 'starting'}
         
         emit_progress(session_id, 'upload', 5, 'Processing uploaded file...')
+        
+        # Get language hint from request (from Mac app or web form)
+        language_hint = request.form.get('language') or request.json.get('language') if request.is_json else None
+        logger.debug(f"Language hint provided: {language_hint}")
         
         # Ensure Uploads folder exists with correct permissions
         uploads_dir = os.path.join(os.getcwd(), 'Uploads')
@@ -283,43 +318,86 @@ def upload_audio():
 
         emit_progress(session_id, 'language_detection', 45, 'Detecting language...')
 
-        # First pass: Quick transcription with tiny model to detect language
-        quick_model = "./whisper.cpp/models/ggml-tiny.bin"
-        if os.path.exists(quick_model):
-            logger.debug("Using tiny model for quick language detection")
-            emit_progress(session_id, 'language_detection', 50, 'Running quick language detection...')
-            
-            quick_whisper_cmd = [
-                whisper_exe,
-                "-m", quick_model,
-                "-f", audio_path,
-                "-l", "auto",
-                "--output-txt",
-                "--output-file", transcription_file.replace('.txt', '_quick')
-            ]
-            
-            quick_result = subprocess.run(quick_whisper_cmd, capture_output=True, text=True, check=False)
-            
-            # Read quick transcription for language detection
-            quick_transcription = ""
-            if os.path.exists(transcription_file.replace('.txt', '_quick.txt')):
-                with open(transcription_file.replace('.txt', '_quick.txt'), 'r', encoding='utf-8') as f:
-                    quick_transcription = f.read().strip()
-            
-            # Select optimal model based on content
-            model_path, detected_language = detect_language_and_select_model(quick_transcription)
-            logger.debug(f"Language detection result - Model: {model_path}, Language: {detected_language}")
-            emit_progress(session_id, 'language_detection', 55, f'Language detected: {detected_language}')
+        # Language detection strategy
+        if language_hint:
+            # User specified language - use directly
+            model_path, detected_language = detect_language_and_select_model("", language_hint)
+            logger.debug(f"Using user-specified language: {language_hint} -> {detected_language}")
+            emit_progress(session_id, 'language_detection', 55, f'Using specified language: {detected_language}')
         else:
-            model_path = base_model_path
-            detected_language = "auto"
-            logger.debug("Tiny model not available, using base model directly")
-            emit_progress(session_id, 'language_detection', 55, 'Using base model for transcription')
+            # Smart detection with Tamil bias for better results
+            quick_model = "./whisper.cpp/models/ggml-tiny.bin"
+            if os.path.exists(quick_model):
+                logger.debug("Running quick language detection...")
+                emit_progress(session_id, 'language_detection', 50, 'Running smart language detection...')
+                
+                # Try auto detection first
+                quick_whisper_cmd = [
+                    whisper_exe,
+                    "-m", quick_model,
+                    "-f", audio_path,
+                    "-l", "auto",
+                    "--output-txt",
+                    "--output-file", transcription_file.replace('.txt', '_quick')
+                ]
+                
+                quick_result = subprocess.run(quick_whisper_cmd, capture_output=True, text=True, check=False)
+                
+                # Read quick transcription for language detection
+                quick_transcription = ""
+                if os.path.exists(transcription_file.replace('.txt', '_quick.txt')):
+                    with open(transcription_file.replace('.txt', '_quick.txt'), 'r', encoding='utf-8') as f:
+                        quick_transcription = f.read().strip()
+                
+                # If auto detection gives English but audio might be Tamil, try Tamil detection
+                model_path, detected_language = detect_language_and_select_model(quick_transcription)
+                
+                # Additional check: If detected as English but transcription looks wrong/garbled, try Tamil
+                if detected_language in ['en', 'english'] and quick_transcription:
+                    # Check if transcription has many short words or nonsensical patterns (indication of wrong language)
+                    words = quick_transcription.split()
+                    short_word_ratio = sum(1 for word in words if len(word) <= 3) / max(len(words), 1)
+                    
+                    if short_word_ratio > 0.7:  # Too many short words might indicate wrong language detection
+                        logger.debug(f"High short word ratio ({short_word_ratio:.2f}), might be Tamil misdetected as English")
+                        emit_progress(session_id, 'language_detection', 52, 'Possible Tamil audio, re-checking...')
+                        
+                        # Try with Tamil explicitly to see if we get better results
+                        tamil_test_cmd = [
+                            whisper_exe,
+                            "-m", quick_model,
+                            "-f", audio_path,
+                            "-l", "ta",  # Force Tamil
+                            "--output-txt",
+                            "--output-file", transcription_file.replace('.txt', '_tamil_test')
+                        ]
+                        
+                        tamil_result = subprocess.run(tamil_test_cmd, capture_output=True, text=True, check=False)
+                        
+                        if tamil_result.returncode == 0:
+                            tamil_transcription = ""
+                            if os.path.exists(transcription_file.replace('.txt', '_tamil_test.txt')):
+                                with open(transcription_file.replace('.txt', '_tamil_test.txt'), 'r', encoding='utf-8') as f:
+                                    tamil_transcription = f.read().strip()
+                                
+                                if tamil_transcription and len(tamil_transcription) > len(quick_transcription) * 0.5:
+                                    # Tamil transcription seems substantial, use Tamil
+                                    model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
+                                    logger.debug("Tamil test gave better results, switching to Tamil")
+                
+                logger.debug(f"Final language detection - Model: {model_path}, Language: {detected_language}")
+                emit_progress(session_id, 'language_detection', 55, f'Language detected: {detected_language}')
+            else:
+                # No tiny model, default to Tamil for South Asian users
+                model_path = base_model_path
+                detected_language = "ta"  # Default to Tamil instead of auto
+                logger.debug("Tiny model not available, defaulting to Tamil")
+                emit_progress(session_id, 'language_detection', 55, 'Using Tamil language (default)')
 
         # Final transcription with selected model and optimizations
-        emit_progress(session_id, 'transcription', 60, f'Starting optimized transcription with {os.path.basename(model_path)}...')
+        emit_progress(session_id, 'transcription', 60, f'Starting optimized transcription with {os.path.basename(model_path)} ({detected_language})...')
         
-        logger.debug(f"Running whisper-cli with file: {audio_path}")
+        logger.debug(f"Running whisper-cli with file: {audio_path}, language: {detected_language}")
         
         # Enhanced whisper command with optimizations (VAD optional)
         whisper_cmd = [
@@ -424,9 +502,10 @@ def upload_audio():
             if audio_path != os.path.join(uploads_dir, audio_filename) and os.path.exists(os.path.join(uploads_dir, audio_filename)):
                 os.remove(os.path.join(uploads_dir, audio_filename))
             # Clean up quick transcription files
-            quick_file = transcription_file.replace('.txt', '_quick.txt')
-            if os.path.exists(quick_file):
-                os.remove(quick_file)
+            for suffix in ['_quick.txt', '_tamil_test.txt']:
+                quick_file = transcription_file.replace('.txt', suffix)
+                if os.path.exists(quick_file):
+                    os.remove(quick_file)
         except Exception as e:
             logger.warning(f"Failed to clean up temporary files: {e}")
 

@@ -4,7 +4,7 @@ import Foundation
 class NetworkManager: ObservableObject {
     static let shared = NetworkManager()
     
-    @Published var serverURL: String = "http://192.168.31.58:9000"
+    @Published var serverURL: String = "http://192.168.31.58:9000"  // DietPi server
     @Published var isConnected = false
     
     // private var socket: WebSocket? // Temporarily disabled
