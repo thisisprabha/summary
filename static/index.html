@@ -94,6 +94,71 @@
             color: #f57c00;
             border: 1px solid #ff9800;
         }
+        
+        /* Progress Bar Styles */
+        .progress-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background-color: #ecf0f1;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 12px;
+            position: relative;
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .progress-stage {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .progress-message {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        .connection-status.connected {
+            background: #2ecc71;
+            color: white;
+        }
+        .connection-status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+        
         #summaryList {
             list-style: none;
             padding: 0;
@@ -124,11 +189,66 @@
             body { font-size: 16px; }
             button { font-size: 16px; padding: 10px 20px; }
             #uploadInput { font-size: 16px; padding: 8px; }
+            .progress-container { margin: 10px 0; padding: 15px; }
+        }
+        
+        /* Real-time Transcription Styles */
+        .realtime-transcription {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        .realtime-transcription h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .transcription-content {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .transcription-chunk {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .transcription-timestamp {
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+        .transcription-text {
+            color: #2c3e50;
+            margin-left: 10px;
+        }
+        .download-btn {
+            background: #27ae60;
+            border-color: #27ae60;
+            font-size: 14px;
+            padding: 8px 16px;
+            margin: 5px;
+        }
+        .download-btn:hover {
+            background: #229954;
+            border-color: #229954;
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 </head>
 <body>
+    <!-- Connection Status Indicator -->
+    <div id="connectionStatus" class="connection-status disconnected">🔴 Disconnected</div>
+    
     <div class="container">
         <h1>🎤 Meeting Recorder & Summarizer</h1>
         
@@ -145,6 +265,23 @@
             </div>
         </div>
 
+        <!-- Real-time Progress Container -->
+        <div id="progressContainer" class="progress-container">
+            <div id="progressStage" class="progress-stage">Starting...</div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill">
+                    <div id="progressText" class="progress-text">0%</div>
+                </div>
+            </div>
+            <div id="progressMessage" class="progress-message">Initializing...</div>
+            
+            <!-- Real-time Transcription Display -->
+            <div id="realtimeTranscription" class="realtime-transcription" style="display: none;">
+                <h4>🎤 Live Transcription:</h4>
+                <div id="transcriptionContent" class="transcription-content"></div>
+            </div>
+        </div>
+
         <div id="processingStatus" class="status" style="display: none;"></div>
 
         <h2>📋 Recent Summaries</h2>
@@ -157,9 +294,119 @@
         let mediaRecorder;
         let audioChunks = [];
         let stream;
+        let socket;
+        let currentSessionId = null;
 
         // Get the current host for API calls
         const API_BASE = window.location.origin;
+
+        // Initialize Socket.IO connection
+        function initSocket() {
+            socket = io(API_BASE);
+            
+            socket.on('connect', () => {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+            });
+            
+            socket.on('connected', (data) => {
+                console.log('Server confirmed connection:', data.message);
+            });
+            
+            socket.on('progress_update', (data) => {
+                updateProgress(data);
+            });
+            
+            socket.on('joined_session', (data) => {
+                console.log('Joined session:', data.session_id);
+            });
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (connected) {
+                statusDiv.textContent = '🟢 Connected';
+                statusDiv.className = 'connection-status connected';
+            } else {
+                statusDiv.textContent = '🔴 Disconnected';
+                statusDiv.className = 'connection-status disconnected';
+            }
+        }
+
+        // Update progress display
+        function updateProgress(data) {
+            const container = document.getElementById('progressContainer');
+            const stage = document.getElementById('progressStage');
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            const message = document.getElementById('progressMessage');
+            const realtimeDiv = document.getElementById('realtimeTranscription');
+            const transcriptionContent = document.getElementById('transcriptionContent');
+            
+            // Show progress container
+            container.style.display = 'block';
+            
+            // Update progress bar
+            fill.style.width = data.progress + '%';
+            text.textContent = data.progress + '%';
+            
+            // Update stage and message
+            stage.textContent = `${data.stage.charAt(0).toUpperCase() + data.stage.slice(1)} Stage`;
+            message.textContent = data.message;
+            
+            // Show transcription area when transcription starts
+            if (data.stage === 'transcription') {
+                realtimeDiv.style.display = 'block';
+                
+                // Debug logging
+                console.log('Transcription stage detected:', data);
+                
+                // Handle real-time transcription chunks
+                if (data.transcription_chunk) {
+                    console.log('Transcription chunk received:', data.transcription_chunk);
+                    
+                    // Add new transcription chunk
+                    const chunkDiv = document.createElement('div');
+                    chunkDiv.className = 'transcription-chunk';
+                    chunkDiv.innerHTML = `
+                        <span class="transcription-timestamp">${data.transcription_chunk.timestamp}</span>
+                        <span class="transcription-text">${data.transcription_chunk.text}</span>
+                    `;
+                    
+                    transcriptionContent.appendChild(chunkDiv);
+                    
+                    // Auto-scroll to bottom
+                    transcriptionContent.scrollTop = transcriptionContent.scrollHeight;
+                } else {
+                    // Show placeholder message when no chunks yet
+                    if (transcriptionContent.children.length === 0) {
+                        const placeholderDiv = document.createElement('div');
+                        placeholderDiv.className = 'transcription-placeholder';
+                        placeholderDiv.style.color = '#7f8c8d';
+                        placeholderDiv.style.fontStyle = 'italic';
+                        placeholderDiv.textContent = 'Waiting for transcription output from Whisper...';
+                        transcriptionContent.appendChild(placeholderDiv);
+                    }
+                }
+            }
+            
+            // Hide when complete
+            if (data.progress >= 100) {
+                setTimeout(() => {
+                    container.style.display = 'none';
+                    realtimeDiv.style.display = 'none';
+                    transcriptionContent.innerHTML = ''; // Clear for next session
+                }, 5000); // Increased to 5 seconds so you can see the final result
+            }
+            
+            console.log(`Progress: ${data.stage} - ${data.progress}% - ${data.message}`);
+        }
 
         // Initialize audio recording with detailed error handling
         async function initRecorder() {
@@ -274,12 +521,12 @@
             document.getElementById('processingStatus').style.display = 'none';
         }
 
-        // Upload audio to server
+        // Upload audio to server with real-time progress tracking
         async function uploadAudio(audioBlob, filename) {
             const formData = new FormData();
             formData.append('audio', audioBlob, filename);
             
-            showProcessingStatus('Uploading and transcribing audio...', true);
+            showProcessingStatus('Starting upload with real-time progress...', true);
             
             try {
                 const response = await fetch(`${API_BASE}/upload`, {
@@ -292,6 +539,13 @@
                 }
                 
                 const data = await response.json();
+                
+                // Join the session for progress updates
+                if (data.session_id && socket) {
+                    currentSessionId = data.session_id;
+                    socket.emit('join_session', { session_id: data.session_id });
+                }
+                
                 hideProcessingStatus();
                 
                 if (data.error) {
@@ -303,6 +557,7 @@
                 
             } catch (error) {
                 hideProcessingStatus();
+                document.getElementById('progressContainer').style.display = 'none';
                 console.error('Upload error:', error);
                 alert('❌ Upload failed: ' + error.message + '\n\nPlease check your internet connection and server status.');
             }
@@ -381,6 +636,13 @@
                             <strong>Summary #${summaries.length - index}:</strong><br>
                             ${summary.summary}
                             ${summary.tag ? `<br><em>Tag: ${summary.tag}</em>` : ''}
+                            <br><br>
+                            <button class="download-btn" onclick="downloadTranscription(${summary.id})">
+                                📄 Download Full Transcription
+                            </button>
+                            <small style="color: #7f8c8d; margin-left: 10px;">
+                                Created: ${new Date(summary.created_at).toLocaleString()}
+                            </small>
                         `;
                         list.appendChild(li);
                     });
@@ -396,10 +658,22 @@
                 list.innerHTML = '<li style="color: red;">❌ Error loading summaries. Please check your connection.</li>';
             }
         }
+        
+        // Download transcription function
+        function downloadTranscription(summaryId) {
+            const downloadUrl = `${API_BASE}/download/${summaryId}`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `transcription_${summaryId}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // Initialize everything when page loads
         window.addEventListener('load', () => {
             console.log('Page loaded, initializing...');
+            initSocket();
             initRecorder();
             fetchSummaries();
         });
