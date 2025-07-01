@@ -1,0 +1,28 @@
+version: "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)"
+options: "66392a1d2f40555b9f4d6ae86bcd7d031978687edcf15b98accd91a14a4294b1"
+build_start_time: [1751370163, 613159000]
+build_end_time: [1751370167, 877597000]
+inputs:
+  ? "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/DerivedSources/resource_bundle_accessor.swift"
+  : [1751370163, 326655375]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/Compression.swift": [1751369750, 284068612]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/WSCompression.swift": [1751369750, 284255862]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/DataBytes/Data+Extensions.swift": [1751369750, 284451152]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/Engine.swift": [1751369750, 284644693]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/NativeEngine.swift": [1751369750, 284822859]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/WSEngine.swift": [1751369750, 285020983]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPHandler.swift": [1751369750, 285241815]
+  ? "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPServerHandler.swift"
+  : [1751369750, 285346523]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FrameCollector.swift": [1751369750, 285446981]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/Framer.swift": [1751369750, 285661272]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/HTTPHandler.swift": [1751369750, 285842105]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/StringHTTPHandler.swift": [1751369750, 286287311]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/FoundationSecurity.swift": [1751369750, 286756475]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/Security.swift": [1751369750, 286857558]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/Server.swift": [1751369750, 287002308]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/WebSocketServer.swift": [1751369750, 287162057]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Starscream/WebSocket.swift": [1751369750, 287473889]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/FoundationTransport.swift": [1751369750, 287702596]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/TCPTransport.swift": [1751369750, 287853304]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/Transport.swift": [1751369750, 287931762]

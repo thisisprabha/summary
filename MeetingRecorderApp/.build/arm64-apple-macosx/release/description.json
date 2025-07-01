@@ -1,0 +1,951 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+    "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Sparkle.framework" : {
+      "inputs" : [
+        {
+          "kind" : "directory",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "directory",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Sparkle.framework"
+        }
+      ]
+    },
+    "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream_Starscream.bundle/PrivacyInfo.xcprivacy" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/PrivacyInfo.xcprivacy"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream_Starscream.bundle/PrivacyInfo.xcprivacy"
+        }
+      ]
+    }
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.MeetingRecorderApp-arm64-apple-macosx15.0-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/sources",
+      "importPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AppDelegate.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AudioManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/MenuBarManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/NetworkManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SettingsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules/Starscream.swiftmodule"
+        },
+        {
+          "kind" : "directory",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Sparkle.framework"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "MeetingRecorderApp",
+      "moduleOutputPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules/MeetingRecorderApp.swiftmodule",
+      "objects" : [
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/AppDelegate.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/AudioManager.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/MenuBarManager.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/NetworkManager.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/SettingsView.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/SummariesWindow.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-O",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-I",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+        "-module-cache-path",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "MeetingRecorderApp_main",
+        "-F",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release",
+        "-color-diagnostics",
+        "-swift-version",
+        "5",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-parse-as-library",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "meetingrecorderapp"
+      ],
+      "outputFileMapPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/AppDelegate.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/AudioManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/MenuBarManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/NetworkManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/SettingsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/SummariesWindow.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules/MeetingRecorderApp.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AppDelegate.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AudioManager.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/MenuBarManager.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/NetworkManager.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SettingsView.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/main.swift"
+      ],
+      "tempsPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build",
+      "wholeModuleOptimization" : true
+    },
+    "C.Starscream-arm64-apple-macosx15.0-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/sources",
+      "importPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/Compression.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/WSCompression.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/DataBytes/Data+Extensions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/Engine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/NativeEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/WSEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPServerHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FrameCollector.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/Framer.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/HTTPHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/StringHTTPHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/FoundationSecurity.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/Security.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/Server.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/WebSocketServer.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Starscream/WebSocket.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/FoundationTransport.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/TCPTransport.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/Transport.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/DerivedSources/resource_bundle_accessor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<Starscream-arm64-apple-macosx15.0-release.module-resources>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "Starscream",
+      "moduleOutputPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules/Starscream.swiftmodule",
+      "objects" : [
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Compression.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WSCompression.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Data+Extensions.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Engine.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/NativeEngine.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WSEngine.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationHTTPHandler.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationHTTPServerHandler.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FrameCollector.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Framer.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/HTTPHandler.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/StringHTTPHandler.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationSecurity.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Security.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Server.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WebSocketServer.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WebSocket.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationTransport.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/TCPTransport.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Transport.swift.o",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/resource_bundle_accessor.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-O",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-module-cache-path",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Starscream-Swift.h",
+        "-color-diagnostics",
+        "-swift-version",
+        "5",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-parse-as-library",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-suppress-warnings"
+      ],
+      "outputFileMapPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Compression.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WSCompression.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Data+Extensions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Engine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/NativeEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WSEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationHTTPHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationHTTPServerHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FrameCollector.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Framer.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/HTTPHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/StringHTTPHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationSecurity.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Security.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Server.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WebSocketServer.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WebSocket.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationTransport.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/TCPTransport.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Transport.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/resource_bundle_accessor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules/Starscream.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/Compression.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/WSCompression.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/DataBytes/Data+Extensions.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/Engine.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/NativeEngine.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/WSEngine.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPHandler.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPServerHandler.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FrameCollector.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/Framer.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/HTTPHandler.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/StringHTTPHandler.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/FoundationSecurity.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/Security.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/Server.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/WebSocketServer.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Starscream/WebSocket.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/FoundationTransport.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/TCPTransport.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/Transport.swift",
+        "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/DerivedSources/resource_bundle_accessor.swift"
+      ],
+      "tempsPath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build",
+      "wholeModuleOptimization" : true
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "MeetingRecorderApp" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "MeetingRecorderApp",
+      "-package-name",
+      "meetingrecorderapp",
+      "-whole-module-optimization",
+      "-num-threads",
+      "10",
+      "-c",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AppDelegate.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AudioManager.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/MenuBarManager.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/NetworkManager.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SettingsView.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/main.swift",
+      "-I",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-O",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-I",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+      "-Xcc",
+      "-I",
+      "-Xcc",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+      "-module-cache-path",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "MeetingRecorderApp_main",
+      "-F",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release",
+      "-color-diagnostics",
+      "-swift-version",
+      "5",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-parse-as-library",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "meetingrecorderapp",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "Starscream" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "Starscream",
+      "-whole-module-optimization",
+      "-num-threads",
+      "10",
+      "-c",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/Compression.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/WSCompression.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/DataBytes/Data+Extensions.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/Engine.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/NativeEngine.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/WSEngine.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPHandler.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPServerHandler.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FrameCollector.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/Framer.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/HTTPHandler.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/StringHTTPHandler.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/FoundationSecurity.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/Security.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/Server.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/WebSocketServer.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Starscream/WebSocket.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/FoundationTransport.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/TCPTransport.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/Transport.swift",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/DerivedSources/resource_bundle_accessor.swift",
+      "-I",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-O",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-module-cache-path",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Starscream-Swift.h",
+      "-color-diagnostics",
+      "-swift-version",
+      "5",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-parse-as-library",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-suppress-warnings",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "MeetingRecorderApp" : [
+      "Starscream",
+      "Sparkle"
+    ],
+    "Starscream" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "enableAllTraits" : false
+  },
+  "writeCommands" : {
+    "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AppDelegate.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AudioManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/MenuBarManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/NetworkManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SettingsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/main.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/sources"
+    },
+    "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/AppDelegate.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/AudioManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/MenuBarManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/NetworkManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/SettingsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/SummariesWindow.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Compression.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Data+Extensions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Engine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationHTTPHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationHTTPServerHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationSecurity.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FoundationTransport.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/FrameCollector.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Framer.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/HTTPHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/NativeEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Security.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Server.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/StringHTTPHandler.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/TCPTransport.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/Transport.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WSCompression.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WSEngine.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WebSocket.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/WebSocketServer.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/resource_bundle_accessor.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/MeetingRecorderApp.product/Objects.LinkFileList"
+    },
+    "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/Compression.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Compression/WSCompression.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/DataBytes/Data+Extensions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/Engine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/NativeEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Engine/WSEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FoundationHTTPServerHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/FrameCollector.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/Framer.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/HTTPHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Framer/StringHTTPHandler.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/FoundationSecurity.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Security/Security.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/Server.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Server/WebSocketServer.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Starscream/WebSocket.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/FoundationTransport.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/TCPTransport.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/checkouts/Starscream/Sources/Transport/Transport.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/DerivedSources/resource_bundle_accessor.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/Starscream.build/sources"
+    },
+    "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
