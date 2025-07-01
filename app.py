@@ -509,59 +509,85 @@ def upload_audio():
         if not transcription:
             return jsonify({'error': 'Transcription is empty. The audio might be too quiet or contain no speech.', 'session_id': session_id}), 400
 
-        emit_progress(session_id, 'summarization', 85, 'Generating AI summary...')
-
-        # Smart Summarization with backup
-        summary = ""
-        try:
-            summary = create_openai_summary(transcription)
-            logger.debug(f"OpenAI Summary: {summary}")
-            emit_progress(session_id, 'summarization', 90, 'OpenAI summary generated!')
-        except Exception as e:
-            logger.warning(f"OpenAI summarization failed: {str(e)}")
-            emit_progress(session_id, 'summarization', 87, 'OpenAI failed, trying offline summarization...')
-            logger.info("Falling back to offline T5 summarization")
-            try:
-                summary = create_offline_summary(transcription)
-                logger.debug(f"Offline Summary: {summary}")
-                emit_progress(session_id, 'summarization', 90, 'Offline summary generated!')
-            except Exception as e2:
-                logger.error(f"Both summarization methods failed: OpenAI: {str(e)}, Offline: {str(e2)}")
-                # Fallback to simple text truncation
-                summary = f"Summary unavailable (API error). Transcription preview: {transcription[:200]}..."
-                emit_progress(session_id, 'summarization', 90, 'Using fallback summary method')
-
-        emit_progress(session_id, 'saving', 95, 'Saving results to database...')
-
-        # Save to database
+        # Save transcription to database immediately (before summarization)
         c.execute("INSERT INTO summaries (transcription, summary) VALUES (?, ?)", 
-                  (transcription, summary))
+                  (transcription, "Summarization in progress..."))
         conn.commit()
+        transcription_id = c.lastrowid
+        
+        emit_progress(session_id, 'transcription_ready', 85, 'Transcription ready for download! Starting summarization...')
 
-        emit_progress(session_id, 'cleanup', 98, 'Cleaning up temporary files...')
-
-        # Clean up temporary files
-        try:
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
-            if audio_path != os.path.join(uploads_dir, audio_filename) and os.path.exists(os.path.join(uploads_dir, audio_filename)):
-                os.remove(os.path.join(uploads_dir, audio_filename))
-            # Clean up language detection test files
-            for suffix in ['_quick.txt', '_english_test.txt']:
-                test_file = transcription_file.replace('.txt', suffix)
-                if os.path.exists(test_file):
-                    os.remove(test_file)
-        except Exception as e:
-            logger.warning(f"Failed to clean up temporary files: {e}")
-
-        emit_progress(session_id, 'complete', 100, 'Processing completed successfully!')
-
-        return jsonify({
-            'id': c.lastrowid, 
-            'summary': summary,
+        # Return transcription immediately - summarization continues in background
+        response_data = {
+            'id': transcription_id, 
             'transcription': transcription[:200] + '...' if len(transcription) > 200 else transcription,
-            'session_id': session_id
-        })
+            'session_id': session_id,
+            'transcription_ready': True,
+            'message': 'Transcription completed! Download available. Summary being generated...'
+        }
+        
+        # Continue summarization in background thread
+        def background_summarization():
+            try:
+                emit_progress(session_id, 'summarization', 87, 'Generating AI summary in background...')
+                
+                summary = ""
+                try:
+                    summary = create_openai_summary(transcription)
+                    logger.debug(f"OpenAI Summary: {summary}")
+                    emit_progress(session_id, 'summarization', 95, 'OpenAI summary generated!')
+                except Exception as e:
+                    logger.warning(f"OpenAI summarization failed: {str(e)}")
+                    emit_progress(session_id, 'summarization', 90, 'OpenAI failed, trying offline summarization...')
+                    logger.info("Falling back to offline T5 summarization")
+                    try:
+                        summary = create_offline_summary(transcription)
+                        logger.debug(f"Offline Summary: {summary}")
+                        emit_progress(session_id, 'summarization', 95, 'Offline summary generated!')
+                    except Exception as e2:
+                        logger.error(f"Both summarization methods failed: OpenAI: {str(e)}, Offline: {str(e2)}")
+                        summary = f"Summary generation failed. Transcription available for download."
+                        emit_progress(session_id, 'summarization', 95, 'Summary generation failed, transcription available')
+
+                # Update database with final summary
+                c.execute("UPDATE summaries SET summary = ? WHERE id = ?", (summary, transcription_id))
+                conn.commit()
+                
+                emit_progress(session_id, 'complete', 100, 'Processing completed successfully!')
+                
+                # Emit final summary to connected clients
+                socketio.emit('summary_ready', {
+                    'session_id': session_id,
+                    'id': transcription_id,
+                    'summary': summary
+                }, room=session_id)
+                
+            except Exception as e:
+                logger.error(f"Background summarization error: {e}")
+                c.execute("UPDATE summaries SET summary = ? WHERE id = ?", 
+                         (f"Summary generation failed: {str(e)}", transcription_id))
+                conn.commit()
+            finally:
+                # Clean up temporary files in background
+                try:
+                    if os.path.exists(audio_path):
+                        os.remove(audio_path)
+                    if audio_path != os.path.join(uploads_dir, audio_filename) and os.path.exists(os.path.join(uploads_dir, audio_filename)):
+                        os.remove(os.path.join(uploads_dir, audio_filename))
+                    # Clean up language detection test files
+                    for suffix in ['_quick.txt', '_english_test.txt']:
+                        test_file = transcription_file.replace('.txt', suffix)
+                        if os.path.exists(test_file):
+                            os.remove(test_file)
+                except Exception as e:
+                    logger.warning(f"Failed to clean up temporary files: {e}")
+        
+        # Start background summarization
+        bg_thread = threading.Thread(target=background_summarization)
+        bg_thread.daemon = True
+        bg_thread.start()
+        
+        return jsonify(response_data)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"Subprocess failed: {e.stderr}")

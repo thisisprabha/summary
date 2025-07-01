@@ -331,6 +331,27 @@
                 updateProgress(data);
             });
             
+            socket.on('summary_ready', (data) => {
+                console.log('Summary completed:', data);
+                
+                // Allow device to sleep now that processing is complete
+                allowSleep();
+                
+                // Hide any existing processing status
+                hideProcessingStatus();
+                
+                // Show completion notification
+                const completionMsg = `✅ Summary Generated!\n\n` +
+                    `📄 Transcription: Available for download\n` +
+                    `📋 Summary: ${data.summary}\n\n` +
+                    `Processing complete!`;
+                
+                alert(completionMsg);
+                
+                // Refresh the summaries list to show updated summary
+                fetchSummaries();
+            });
+            
             socket.on('joined_session', (data) => {
                 console.log('Joined session:', data.session_id);
             });
@@ -542,6 +563,9 @@
                 formData.append('language', selectedLanguage);
             }
             
+            // Prevent device sleep during processing
+            preventSleep();
+            
             showProcessingStatus(`Starting upload with language: ${getLanguageName(selectedLanguage)}...`, true);
             
             try {
@@ -565,18 +589,66 @@
                 hideProcessingStatus();
                 
                 if (data.error) {
+                    allowSleep(); // Allow sleep on error
                     alert('❌ Processing Error: ' + data.error);
+                } else if (data.transcription_ready) {
+                    // Transcription is ready immediately!
+                    const transcriptionMsg = `✅ Transcription Completed!\n\n` +
+                        `📄 Download: Click "Download Full Transcription" button\n` +
+                        `🔄 Summary: Being generated in background...\n\n` +
+                        `Preview: ${data.transcription}`;
+                    
+                    alert(transcriptionMsg);
+                    
+                    // Refresh summaries to show the new transcription
+                    fetchSummaries();
+                    
+                    // Show download button prominently
+                    showTranscriptionReady(data.id, data.message);
+                    
+                    // Note: Sleep prevention continues until summary is complete
+                    // Summary completion will be handled by socket.on('summary_ready')
                 } else {
-                    alert('✅ Summary Generated!\n\n' + data.summary);
+                    // Fallback for old response format
+                    allowSleep();
+                    alert('✅ Processing Complete!\n\n' + (data.summary || 'Transcription available'));
                     fetchSummaries();
                 }
                 
             } catch (error) {
+                allowSleep(); // Allow sleep on error
                 hideProcessingStatus();
                 document.getElementById('progressContainer').style.display = 'none';
                 console.error('Upload error:', error);
                 alert('❌ Upload failed: ' + error.message + '\n\nPlease check your internet connection and server status.');
             }
+        }
+        
+        // Show transcription ready notification
+        function showTranscriptionReady(transcriptionId, message) {
+            const statusDiv = document.getElementById('processingStatus');
+            statusDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="margin-bottom: 15px;">
+                        <strong>📄 Transcription Ready!</strong><br>
+                        ${message}
+                    </div>
+                    <button class="download-btn" onclick="downloadTranscription(${transcriptionId})" 
+                            style="font-size: 16px; padding: 12px 24px; background: #27ae60; border: none; color: white; border-radius: 5px; cursor: pointer;">
+                        📄 Download Transcription Now
+                    </button>
+                    <div style="margin-top: 10px; font-size: 14px; color: #7f8c8d;">
+                        🔄 Summary being generated in background...
+                    </div>
+                </div>
+            `;
+            statusDiv.className = 'status success';
+            statusDiv.style.display = 'block';
+            
+            // Auto-hide after 30 seconds
+            setTimeout(() => {
+                hideProcessingStatus();
+            }, 30000);
         }
         
         // Helper function to get language display name
@@ -711,6 +783,31 @@
                 setTimeout(initRecorder, 1000);
             }
         });
+
+        // Prevent device sleep during processing
+        let wakeLock = null;
+        
+        async function preventSleep() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock activated to prevent sleep during processing');
+                } else {
+                    console.log('Wake Lock API not supported');
+                }
+            } catch (err) {
+                console.error('Failed to activate wake lock:', err);
+            }
+        }
+        
+        function allowSleep() {
+            if (wakeLock) {
+                wakeLock.release().then(() => {
+                    wakeLock = null;
+                    console.log('Wake lock released, device can sleep');
+                });
+            }
+        }
     </script>
 </body>
 </html> 
