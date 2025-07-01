@@ -14,6 +14,18 @@ import select
 import fcntl
 import re
 
+# Audio optimization imports for cost reduction
+try:
+    from pydub import AudioSegment
+    from pydub.silence import split_on_silence
+    import librosa
+    import soundfile as sf
+    import webrtcvad
+    AUDIO_OPTIMIZATION_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Audio optimization libraries not available: {e}")
+    AUDIO_OPTIMIZATION_AVAILABLE = False
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, filename='app.log')
 logger = logging.getLogger(__name__)
@@ -44,6 +56,178 @@ def emit_progress(session_id, stage, progress, message, transcription_chunk=None
         logger.debug(f"Progress update: {stage} - {progress}% - {message}")
     except Exception as e:
         logger.error(f"Failed to emit progress: {e}")
+
+# Cost tracking for OpenAI API usage
+class CostTracker:
+    def __init__(self):
+        self.total_cost = 0.0
+        self.session_costs = {}
+    
+    def add_whisper_cost(self, session_id, duration_minutes):
+        """Add Whisper API cost ($0.006/minute)"""
+        cost = duration_minutes * 0.006
+        self.total_cost += cost
+        if session_id not in self.session_costs:
+            self.session_costs[session_id] = 0.0
+        self.session_costs[session_id] += cost
+        logger.info(f"Session {session_id}: Whisper cost ${cost:.4f} for {duration_minutes:.2f} minutes")
+        return cost
+    
+    def get_session_cost(self, session_id):
+        return self.session_costs.get(session_id, 0.0)
+    
+    def get_total_cost(self):
+        return self.total_cost
+
+cost_tracker = CostTracker()
+
+# Audio optimization functions for cost reduction
+def optimize_audio_for_api(audio_path, session_id):
+    """Optimize audio file to reduce OpenAI API costs using your strategy"""
+    if not AUDIO_OPTIMIZATION_AVAILABLE:
+        return audio_path, "No optimization (libraries missing)"
+    
+    try:
+        emit_progress(session_id, 'optimization', 15, 'Optimizing audio to reduce API costs...')
+        
+        # Load audio
+        audio = AudioSegment.from_file(audio_path)
+        original_duration = len(audio) / 1000.0  # seconds
+        original_size = os.path.getsize(audio_path) / (1024 * 1024)  # MB
+        
+        optimization_steps = []
+        
+        # Step 1: Convert to mono (halves data)
+        if audio.channels > 1:
+            audio = audio.set_channels(1)
+            optimization_steps.append("mono conversion")
+            emit_progress(session_id, 'optimization', 20, 'Converting to mono (50% size reduction)...')
+        
+        # Step 2: Downsample to optimal rate (16kHz for Whisper)
+        if audio.frame_rate > 16000:
+            audio = audio.set_frame_rate(16000)
+            optimization_steps.append("downsampled to 16kHz")
+            emit_progress(session_id, 'optimization', 25, 'Downsampling to 16kHz...')
+        
+        # Step 3: Trim silence aggressively (your key cost-saving strategy)
+        emit_progress(session_id, 'optimization', 30, 'Removing silence to reduce duration cost...')
+        
+        # Detect silence and split
+        chunks = split_on_silence(
+            audio,
+            min_silence_len=300,    # 300ms minimum silence
+            silence_thresh=-40,     # dB threshold for silence
+            keep_silence=100,       # keep 100ms padding
+            seek_step=10           # precision
+        )
+        
+        if chunks:
+            # Combine non-silent chunks
+            optimized_audio = AudioSegment.empty()
+            for chunk in chunks:
+                optimized_audio += chunk
+            
+            silence_removed = original_duration - (len(optimized_audio) / 1000.0)
+            if silence_removed > 1.0:  # Only apply if significant silence removed
+                audio = optimized_audio
+                optimization_steps.append(f"removed {silence_removed:.1f}s silence")
+                emit_progress(session_id, 'optimization', 35, f'Removed {silence_removed:.1f}s of silence!')
+        
+        # Step 4: Export as FLAC for better compression
+        output_path = audio_path.replace('.wav', '_optimized.flac')
+        audio.export(output_path, format="flac", parameters=["-compression_level", "8"])
+        
+        new_duration = len(audio) / 1000.0
+        new_size = os.path.getsize(output_path) / (1024 * 1024)
+        
+        duration_reduction = ((original_duration - new_duration) / original_duration) * 100
+        size_reduction = ((original_size - new_size) / original_size) * 100
+        cost_savings = duration_reduction  # Cost is per minute, so duration reduction = cost reduction
+        
+        optimization_summary = f"Optimized: {', '.join(optimization_steps)}"
+        savings_summary = f"Duration: -{duration_reduction:.1f}%, Size: -{size_reduction:.1f}%, Cost: -{cost_savings:.1f}%"
+        
+        emit_progress(session_id, 'optimization', 40, f'Optimization complete! {savings_summary}')
+        logger.info(f"Audio optimization: {optimization_summary} | {savings_summary}")
+        
+        return output_path, f"{optimization_summary} | {savings_summary}"
+        
+    except Exception as e:
+        logger.warning(f"Audio optimization failed: {e}")
+        return audio_path, f"Optimization failed: {str(e)}"
+
+def transcribe_with_openai_api(audio_path, session_id, language_hint=None):
+    """Transcribe using OpenAI Whisper API with cost tracking"""
+    try:
+        emit_progress(session_id, 'openai_transcription', 45, 'Starting OpenAI Whisper API transcription...')
+        
+        # Calculate duration for cost tracking
+        try:
+            if AUDIO_OPTIMIZATION_AVAILABLE:
+                audio = AudioSegment.from_file(audio_path)
+                duration_minutes = len(audio) / (1000.0 * 60.0)
+            else:
+                # Fallback: use ffprobe
+                probe_cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', 
+                           '-show_entries', 'format=duration', audio_path]
+                result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
+                duration_seconds = float(json.loads(result.stdout)['format']['duration'])
+                duration_minutes = duration_seconds / 60.0
+        except Exception as e:
+            logger.warning(f"Could not determine audio duration: {e}")
+            duration_minutes = 1.0  # Default estimate
+        
+        # Track expected cost
+        expected_cost = cost_tracker.add_whisper_cost(session_id, duration_minutes)
+        emit_progress(session_id, 'openai_transcription', 50, 
+                     f'Uploading to OpenAI... (Est. cost: ${expected_cost:.3f})')
+        
+        # Prepare language parameter
+        language_param = None
+        if language_hint:
+            if language_hint.lower() in ['tamil', 'ta']:
+                language_param = 'ta'
+            elif language_hint.lower() in ['english', 'en']:
+                language_param = 'en'
+        
+        # Call OpenAI Whisper API
+        with open(audio_path, 'rb') as audio_file:
+            if OPENAI_NEW_CLIENT and openai_client:
+                # New OpenAI client (v1.0+)
+                transcript_kwargs = {
+                    "model": "whisper-1",
+                    "file": audio_file,
+                    "response_format": "text"
+                }
+                if language_param:
+                    transcript_kwargs["language"] = language_param
+                
+                transcript = openai_client.audio.transcriptions.create(**transcript_kwargs)
+                transcription_text = transcript if isinstance(transcript, str) else transcript.text
+            else:
+                # Legacy OpenAI client
+                transcript_kwargs = {
+                    "model": "whisper-1",
+                    "file": audio_file,
+                    "response_format": "text"
+                }
+                if language_param:
+                    transcript_kwargs["language"] = language_param
+                
+                transcript = openai.Audio.transcribe(**transcript_kwargs)
+                transcription_text = transcript.get('text', '') if isinstance(transcript, dict) else str(transcript)
+        
+        emit_progress(session_id, 'openai_transcription', 80, 
+                     f'OpenAI transcription complete! (Cost: ${expected_cost:.3f})')
+        
+        if not transcription_text or len(transcription_text.strip()) < 5:
+            raise Exception("OpenAI returned empty or very short transcription")
+        
+        return transcription_text.strip()
+        
+    except Exception as e:
+        logger.error(f"OpenAI Whisper API failed: {e}")
+        raise Exception(f"OpenAI Whisper API failed: {str(e)}")
 
 # Initialize OpenAI client with backward compatibility
 openai_api_key = os.getenv('OPENAI_API_KEY', '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')
@@ -84,7 +268,7 @@ conn.commit()
 
 def detect_language_and_select_model(transcription_sample, user_language_hint=None):
     """
-    Detect language optimized for Tamil-English bilingual scenarios
+    Detect language optimized for Tamil-English bilingual scenarios with speed focus
     Returns: (model_path, detected_language)
     """
     
@@ -92,12 +276,13 @@ def detect_language_and_select_model(transcription_sample, user_language_hint=No
     if user_language_hint and user_language_hint.lower() in ['tamil', 'ta']:
         return "./whisper.cpp/models/ggml-base.bin", "ta"
     elif user_language_hint and user_language_hint.lower() in ['english', 'en']:
+        # Prefer tiny model for English (3x faster)
         tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
         if os.path.exists(tiny_model):
             return tiny_model, "en"
         return "./whisper.cpp/models/ggml-base.bin", "en"
     
-    # Optimized detection for Tamil-English bilingual content
+    # Optimized detection for Tamil-English bilingual content with speed priority
     text_lower = transcription_sample.lower()
     
     # Tamil Unicode range detection (comprehensive for all Tamil scripts)
@@ -137,17 +322,25 @@ def detect_language_and_select_model(transcription_sample, user_language_hint=No
     words = transcription_sample.split()
     word_count = len(words)
     
-    # Decision logic optimized for Tamil-English bilingual scenarios
-    if tamil_unicode_ratio > 0.1 or tamil_pattern_score > 0:  # Any Tamil detected
-        # This is Tamil or mixed Tamil-English
-        if english_score > 5 and word_count > 20:
-            # Significant English content + Tamil = Mixed language
-            logger.debug(f"Mixed Tamil-English detected - Tamil ratio: {tamil_unicode_ratio:.2f}, Tamil patterns: {tamil_pattern_score}, English: {english_score}")
-            # Use base model for mixed content (better for code-switching)
-            return "./whisper.cpp/models/ggml-base.bin", "ta"  # Tamil model handles mixed better
+    # Speed-optimized decision logic for Tamil-English bilingual scenarios
+    if tamil_unicode_ratio > 0.2 or tamil_pattern_score > 1:  # Strong Tamil detected
+        # Clear Tamil content - use base model
+        logger.debug(f"Strong Tamil detected - Unicode ratio: {tamil_unicode_ratio:.2f}, Pattern score: {tamil_pattern_score}")
+        return "./whisper.cpp/models/ggml-base.bin", "ta"
+    
+    elif tamil_unicode_ratio > 0.05 or tamil_pattern_score > 0:  # Light Tamil detected
+        # Some Tamil but might be mixed
+        if english_score > 8 and word_count > 20:
+            # Heavy English with some Tamil = probably mixed but English-heavy
+            logger.debug(f"English-heavy mixed content - Tamil ratio: {tamil_unicode_ratio:.2f}, English: {english_score}")
+            # Use tiny model for speed (English model handles some Tamil)
+            tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
+            if os.path.exists(tiny_model):
+                return tiny_model, "en"
+            return "./whisper.cpp/models/ggml-base.bin", "en"
         else:
-            # Predominantly Tamil
-            logger.debug(f"Tamil detected - Unicode ratio: {tamil_unicode_ratio:.2f}, Pattern score: {tamil_pattern_score}")
+            # Tamil-leaning mixed content
+            logger.debug(f"Tamil-leaning mixed content - Tamil ratio: {tamil_unicode_ratio:.2f}, Tamil patterns: {tamil_pattern_score}")
             return "./whisper.cpp/models/ggml-base.bin", "ta"
     
     elif english_score >= 3:  # Clear English content
@@ -156,12 +349,16 @@ def detect_language_and_select_model(transcription_sample, user_language_hint=No
         transliterated_score = sum(1 for pattern in transliterated_tamil if pattern in text_lower)
         
         if transliterated_score > 0:
-            # English with Tamil transliteration = Mixed
-            logger.debug(f"Mixed English-Tamil (transliterated) detected - English: {english_score}, Transliterated: {transliterated_score}")
-            return "./whisper.cpp/models/ggml-base.bin", "ta"  # Tamil model better for mixed
+            # English with Tamil transliteration = Mixed but English model might work
+            logger.debug(f"English with transliterated Tamil - English: {english_score}, Transliterated: {transliterated_score}")
+            # Try tiny model first for speed
+            tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
+            if os.path.exists(tiny_model):
+                return tiny_model, "en"  # English model often handles transliterated Tamil
+            return "./whisper.cpp/models/ggml-base.bin", "ta"
         else:
-            # Pure English
-            logger.debug(f"English detected - Pattern score: {english_score}")
+            # Pure English - use tiny model for speed
+            logger.debug(f"Pure English detected - Pattern score: {english_score}")
             tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
             if os.path.exists(tiny_model):
                 return tiny_model, "en"
@@ -176,8 +373,11 @@ def detect_language_and_select_model(transcription_sample, user_language_hint=No
             logger.debug(f"Non-ASCII characters detected ({non_ascii_ratio:.2f}), defaulting to Tamil")
             return "./whisper.cpp/models/ggml-base.bin", "ta"
         
-        # Default for Tamil-English bilingual environment
-        logger.debug("Language unclear in Tamil-English context, defaulting to Tamil model (better for mixed)")
+        # When truly unclear, prefer speed for Tamil-English bilingual environment
+        logger.debug("Language unclear in Tamil-English context, using tiny model for speed")
+        tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
+        if os.path.exists(tiny_model):
+            return tiny_model, "en"  # Try English first for speed
         return "./whisper.cpp/models/ggml-base.bin", "ta"
 
 def get_language_description(language_code):
@@ -365,147 +565,295 @@ def upload_audio():
 
         emit_progress(session_id, 'language_detection', 45, 'Detecting language...')
 
-        # Language detection strategy optimized for Tamil-English bilingual environment
-        if language_hint:
-            # User specified language - use directly
-            model_path, detected_language = detect_language_and_select_model("", language_hint)
-            logger.debug(f"Using user-specified language: {language_hint} -> {detected_language}")
-            emit_progress(session_id, 'language_detection', 55, f'Using specified language: {detected_language}')
+        # Get transcription method choice from user
+        transcription_method = request.form.get('transcription_method', 'auto').lower()
+        logger.debug(f"Transcription method requested: {transcription_method}")
+        
+        # User Choice Logic: Fast/Free/Auto
+        if transcription_method == 'openai_fast':
+            # Option 1: Pure OpenAI API (fastest, small cost)
+            emit_progress(session_id, 'method_selection', 47, '🚀 Using OpenAI API (Fast & Accurate)')
+            use_openai = True
+            use_optimization = True
+        elif transcription_method == 'local_free':
+            # Option 2: Pure Local (free, slower)
+            emit_progress(session_id, 'method_selection', 47, '🆓 Using Local Processing (Free)')
+            use_openai = False
+            use_optimization = False
         else:
-            # Smart detection optimized for Tamil-English bilingual meetings
-            quick_model = "./whisper.cpp/models/ggml-tiny.bin"
-            if os.path.exists(quick_model):
-                logger.debug("Running Tamil-English optimized language detection...")
-                emit_progress(session_id, 'language_detection', 50, 'Detecting Tamil vs English content...')
+            # Option 3: Auto Smart Choice (recommended)
+            emit_progress(session_id, 'method_selection', 47, '🎯 Smart Auto Selection...')
+            
+            # Smart decision based on audio duration and Tamil content
+            try:
+                # Get audio duration for smart choice
+                if AUDIO_OPTIMIZATION_AVAILABLE:
+                    audio_segment = AudioSegment.from_file(audio_path)
+                    duration_minutes = len(audio_segment) / (1000.0 * 60.0)
+                else:
+                    probe_cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', 
+                               '-show_entries', 'format=duration', audio_path]
+                    result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
+                    duration_seconds = float(json.loads(result.stdout)['format']['duration'])
+                    duration_minutes = duration_seconds / 60.0
                 
-                # Quick detection with Tamil bias (better for mixed content)
-                quick_whisper_cmd = [
-                    whisper_exe,
-                    "-m", quick_model,
-                    "-f", audio_path,
-                    "-l", "ta",  # Start with Tamil model for better mixed detection
-                    "--output-txt",
-                    "--output-file", transcription_file.replace('.txt', '_quick')
-                ]
+                # Calculate expected OpenAI cost
+                expected_cost = duration_minutes * 0.006
                 
-                quick_result = subprocess.run(quick_whisper_cmd, capture_output=True, text=True, check=False)
-                
-                # Read quick transcription for language analysis
-                quick_transcription = ""
-                if os.path.exists(transcription_file.replace('.txt', '_quick.txt')):
-                    with open(transcription_file.replace('.txt', '_quick.txt'), 'r', encoding='utf-8') as f:
-                        quick_transcription = f.read().strip()
-                
-                # Analyze the Tamil-first transcription
-                model_path, detected_language = detect_language_and_select_model(quick_transcription)
-                
-                # If detected as pure English, verify with English model for comparison
-                if detected_language == 'en' and quick_transcription:
-                    emit_progress(session_id, 'language_detection', 52, 'Pure English detected, verifying...')
+                # Smart choice criteria
+                if duration_minutes <= 2.0:
+                    # Short audio: Use OpenAI (cost < 1.2 cents)
+                    use_openai = True
+                    use_optimization = True
+                    emit_progress(session_id, 'method_selection', 48, 
+                                f'Short audio ({duration_minutes:.1f}min, ${expected_cost:.3f}) → OpenAI')
+                elif duration_minutes <= 10.0 and expected_cost <= 0.06:
+                    # Medium audio under 6 cents: Use OpenAI with optimization
+                    use_openai = True
+                    use_optimization = True
+                    emit_progress(session_id, 'method_selection', 48, 
+                                f'Medium audio ({duration_minutes:.1f}min, ${expected_cost:.3f}) → Optimized OpenAI')
+                else:
+                    # Long audio or high cost: Use local
+                    use_openai = False
+                    use_optimization = False
+                    emit_progress(session_id, 'method_selection', 48, 
+                                f'Long audio ({duration_minutes:.1f}min, ${expected_cost:.3f}) → Local (free)')
                     
-                    # Quick English verification
-                    english_test_cmd = [
+            except Exception as e:
+                logger.warning(f"Smart choice analysis failed: {e}, defaulting to local")
+                use_openai = False
+                use_optimization = False
+                emit_progress(session_id, 'method_selection', 48, 'Analysis failed → Local (safe)')
+
+        # Hybrid Transcription Execution: OpenAI API vs Local Processing
+        transcription = ""
+        optimization_info = ""
+        detected_language = language_hint or "auto"  # Initialize with user hint or auto
+        
+        if use_openai:
+            # OpenAI API Path with Cost Optimization
+            try:
+                # Step 1: Audio optimization for cost reduction (if enabled)
+                final_audio_path = audio_path
+                if use_optimization:
+                    final_audio_path, optimization_info = optimize_audio_for_api(audio_path, session_id)
+                
+                # Step 2: OpenAI Whisper API transcription
+                transcription = transcribe_with_openai_api(final_audio_path, session_id, detected_language)
+                
+                # Add cost info to response
+                session_cost = cost_tracker.get_session_cost(session_id)
+                total_cost = cost_tracker.get_total_cost()
+                
+                emit_progress(session_id, 'transcription', 80, 
+                            f'OpenAI transcription complete! Session: ${session_cost:.3f}, Total: ${total_cost:.3f}')
+                
+                logger.info(f"OpenAI transcription success. {optimization_info}")
+                
+            except Exception as openai_error:
+                logger.warning(f"OpenAI API failed: {openai_error}")
+                emit_progress(session_id, 'fallback', 45, 'OpenAI failed, falling back to local processing...')
+                
+                # Fallback to local processing
+                use_openai = False
+                
+        if not use_openai:
+            # Local Processing Path (Free but slower)
+            emit_progress(session_id, 'transcription', 60, 'Starting local Whisper processing...')
+            
+            # Language detection for local processing
+            if not language_hint:
+                # Use the existing language detection logic for local
+                quick_model = "./whisper.cpp/models/ggml-tiny.bin"
+                if os.path.exists(quick_model):
+                    logger.debug("Running Tamil-English optimized language detection...")
+                    emit_progress(session_id, 'language_detection', 50, 'Quick language detection (15 seconds max)...')
+                    
+                    # Quick detection with timeout and Tamil bias
+                    quick_whisper_cmd = [
                         whisper_exe,
                         "-m", quick_model,
                         "-f", audio_path,
-                        "-l", "en",
+                        "-l", "auto",  # Let whisper auto-detect first
                         "--output-txt",
-                        "--output-file", transcription_file.replace('.txt', '_english_test')
+                        "--output-file", transcription_file.replace('.txt', '_quick'),
+                        "--threads", "4",  # Limit threads for speed
+                        "--duration", "30000",  # Only process first 30 seconds for detection
+                        "--no-timestamps"  # Skip timestamps for speed
                     ]
                     
-                    english_result = subprocess.run(english_test_cmd, capture_output=True, text=True, check=False)
-                    
-                    if english_result.returncode == 0:
-                        english_transcription = ""
-                        if os.path.exists(transcription_file.replace('.txt', '_english_test.txt')):
-                            with open(transcription_file.replace('.txt', '_english_test.txt'), 'r', encoding='utf-8') as f:
-                                english_transcription = f.read().strip()
+                    try:
+                        # Run with timeout to prevent hanging
+                        quick_result = subprocess.run(
+                            quick_whisper_cmd, 
+                            capture_output=True, 
+                            text=True, 
+                            timeout=25,  # 25 second timeout
+                            check=False
+                        )
+                        
+                        emit_progress(session_id, 'language_detection', 52, 'Analyzing detected language...')
+                        
+                        # Read quick transcription for language analysis
+                        quick_transcription = ""
+                        quick_file_path = transcription_file.replace('.txt', '_quick.txt')
+                        if os.path.exists(quick_file_path):
+                            with open(quick_file_path, 'r', encoding='utf-8') as f:
+                                quick_transcription = f.read().strip()
+                            # Clean up temp file
+                            os.remove(quick_file_path)
+                        
+                        # If no transcription or very short, likely Tamil - whisper auto-detect struggles with Tamil
+                        if not quick_transcription or len(quick_transcription) < 10:
+                            logger.debug("Very short/empty auto-detection output - likely Tamil or poor audio")
+                            model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
+                            emit_progress(session_id, 'language_detection', 55, 'Short output detected - using Tamil model')
+                        else:
+                            # Analyze the auto-detected transcription
+                            model_path, detected_language = detect_language_and_select_model(quick_transcription)
                             
-                            # Compare quality: if English version is significantly better, use English
-                            if english_transcription and len(english_transcription) > len(quick_transcription) * 1.2:
-                                logger.debug("English model gave significantly better results")
-                                model_path, detected_language = detect_language_and_select_model(english_transcription, "en")
-                            else:
-                                # Similar quality or Tamil version better = likely mixed content
-                                logger.debug("Similar quality suggests mixed Tamil-English content")
+                            # Additional heuristic: if auto-detection gave nonsensical English, likely Tamil
+                            nonsense_patterns = ['hello hello hello', 'testing testing', 'the the the', 
+                                               'and and and', 'this this this', 'is is is']
+                            quick_lower = quick_transcription.lower()
+                            if any(pattern in quick_lower for pattern in nonsense_patterns):
+                                logger.debug("Repetitive/nonsensical English detected - likely Tamil misclassified")
                                 model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
-                
-                logger.debug(f"Tamil-English optimized detection result - Model: {model_path}, Language: {detected_language}")
-                emit_progress(session_id, 'language_detection', 55, f'Optimized for {detected_language}: {get_language_description(detected_language)}')
+                                emit_progress(session_id, 'language_detection', 55, 'Nonsensical English detected - switching to Tamil')
+                            else:
+                                emit_progress(session_id, 'language_detection', 55, f'Language detected: {get_language_description(detected_language)}')
+                        
+                    except subprocess.TimeoutExpired:
+                        logger.warning("Language detection timed out - defaulting to Tamil for safety")
+                        emit_progress(session_id, 'language_detection', 55, 'Detection timeout - using Tamil model (safer for mixed)')
+                        model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
+                    except Exception as e:
+                        logger.warning(f"Language detection failed: {e} - defaulting to Tamil")
+                        emit_progress(session_id, 'language_detection', 55, 'Detection failed - using Tamil model')
+                        model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
+                    
+                    logger.debug(f"Final language choice - Model: {model_path}, Language: {detected_language}")
+                else:
+                    # No tiny model available - default to Tamil for better mixed language handling
+                    model_path = base_model_path
+                    detected_language = "ta"
+                    logger.debug("Tiny model not available, defaulting to Tamil (better for Tamil-English mixed)")
+                    emit_progress(session_id, 'language_detection', 55, 'Using Tamil model (tiny model unavailable)')
             else:
-                # No tiny model available - default to Tamil for better mixed language handling
-                model_path = base_model_path
-                detected_language = "ta"
-                logger.debug("Tiny model not available, defaulting to Tamil (better for Tamil-English mixed)")
-                emit_progress(session_id, 'language_detection', 55, 'Using Tamil model (optimized for mixed Tamil-English)')
+                # User provided language hint
+                model_path, detected_language = detect_language_and_select_model("", language_hint)
+                emit_progress(session_id, 'language_detection', 55, f'Using specified language: {detected_language}')
 
-        # Final transcription with optimized model
-        emit_progress(session_id, 'transcription', 60, f'Starting transcription with {os.path.basename(model_path)} ({get_language_description(detected_language)})...')
-        
-        logger.debug(f"Running whisper-cli with file: {audio_path}, language: {detected_language}")
-        
-        # Enhanced whisper command with optimizations
-        whisper_cmd = [
-            whisper_exe,
-            "-m", model_path,
-            "-f", audio_path,
-            "-l", detected_language,
-            "--output-txt",
-            "--output-file", transcription_file.replace('.txt', ''),  # whisper adds .txt automatically
-            "--diarize",  # Speaker separation
-            "--print-progress",  # Show progress for real-time parsing
-            "--print-colors"  # Easier to parse output
-        ]
-        
-        # Try to add VAD if model is available
-        vad_model_path = "./whisper.cpp/models/ggml-vad.bin"
-        if os.path.exists(vad_model_path):
-            whisper_cmd.extend([
-                "--vad",  # Voice Activity Detection - skip silent parts
-                "--vad-model", vad_model_path,
-                "--vad-threshold", "0.3",  # Sensitivity for detecting speech
-                "--vad-min-speech-duration-ms", "250",  # Minimum speech duration
-                "--vad-min-silence-duration-ms", "500",  # Minimum silence to split
-            ])
-            emit_progress(session_id, 'transcription', 65, 'Whisper processing with VAD + Speaker Detection...')
-            logger.debug("Using VAD model for silence skipping")
-        else:
-            emit_progress(session_id, 'transcription', 65, 'Whisper processing with Speaker Detection (VAD model not available)...')
-            logger.info("VAD model not found, processing without silence skipping")
-        
-        # Show transcription area immediately when starting
-        emit_progress(session_id, 'transcription', 67, 'Whisper starting... Real-time transcription will appear below')
-        
-        # Use real-time whisper execution for streaming updates
-        try:
-            result_code, stdout, stderr = run_whisper_with_realtime_output(whisper_cmd, session_id)
-        except Exception as e:
-            logger.warning(f"Real-time whisper failed, falling back to standard mode: {e}")
-            # Fallback to standard execution with progress simulation
-            emit_progress(session_id, 'transcription', 70, 'Processing audio in segments...', {
-                'timestamp': '[00:00:00.000 --> 00:00:05.000]',
-                'text': 'Audio processing started...',
-                'chunk_number': 1
-            })
-            result = subprocess.run(whisper_cmd, capture_output=True, text=True, check=False)
-            result_code, stdout, stderr = result.returncode, result.stdout, result.stderr
-        
-        logger.debug(f"Whisper-cli stdout: {stdout}")
-        
-        if result_code != 0:
-            logger.error(f"Whisper-cli stderr: {stderr}")
-            return jsonify({'error': f'Whisper transcription failed: {stderr}', 'session_id': session_id}), 500
+            # Local transcription with optimized model
+            emit_progress(session_id, 'transcription', 60, f'Starting local transcription with {os.path.basename(model_path)} ({get_language_description(detected_language)})...')
+            
+            logger.debug(f"Running whisper-cli with file: {audio_path}, language: {detected_language}")
+            
+            # Enhanced whisper command with aggressive performance optimizations
+            whisper_cmd = [
+                whisper_exe,
+                "-m", model_path,
+                "-f", audio_path,
+                "-l", detected_language,
+                "--output-txt",
+                "--output-file", transcription_file.replace('.txt', ''),  # whisper adds .txt automatically
+                "--diarize",  # Speaker separation
+                "--print-progress",  # Show progress for real-time parsing
+                "--print-colors",  # Easier to parse output
+                # Performance optimizations
+                "--threads", str(min(8, os.cpu_count())),  # Use optimal thread count
+                "--processors", "1",  # Single processor for stability
+                "--max-len", "0",  # No length limit for better performance
+                "--word-thold", "0.01",  # Lower word threshold for speed
+                "--entropy-thold", "2.40",  # Lower entropy threshold
+                "--logprob-thold", "-1.00",  # Lower log probability threshold
+                "--beam-size", "1",  # Reduce beam size for speed (quality vs speed tradeoff)
+                "--best-of", "1",  # Use only best candidate for speed
+                "--audio-ctx", "512"  # Reduce audio context for speed
+            ]
+            
+            # Additional optimizations based on audio length
+            try:
+                # Get audio duration for optimization
+                probe_cmd = [
+                    'ffprobe', '-v', 'quiet', '-print_format', 'json', 
+                    '-show_entries', 'format=duration', audio_path
+                ]
+                probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
+                probe_data = json.loads(probe_result.stdout)
+                duration = float(probe_data['format']['duration'])
+                logger.debug(f"Audio duration: {duration:.2f} seconds")
+                
+                # Aggressive optimizations for longer audio
+                if duration > 180:  # 3+ minutes
+                    whisper_cmd.extend([
+                        "--speed-up", "true",  # Enable speed-up for long audio
+                        "--no-timestamps"  # Disable timestamps for speed (can add later)
+                    ])
+                    emit_progress(session_id, 'transcription', 65, f'Long audio detected ({duration:.0f}s), using speed optimizations...')
+                elif duration > 60:  # 1+ minutes  
+                    whisper_cmd.extend([
+                        "--speed-up", "true"
+                    ])
+                    emit_progress(session_id, 'transcription', 65, f'Medium audio ({duration:.0f}s), optimizing for speed...')
+                else:
+                    emit_progress(session_id, 'transcription', 65, f'Short audio ({duration:.0f}s), using standard processing...')
+                    
+            except Exception as e:
+                logger.warning(f"Could not determine audio duration: {e}")
+                emit_progress(session_id, 'transcription', 65, 'Processing with standard optimizations...')
+            
+            # Try to add VAD if model is available (major speed boost)
+            vad_model_path = "./whisper.cpp/models/ggml-silero-v5.1.2.bin"
+            if os.path.exists(vad_model_path):
+                whisper_cmd.extend([
+                    "--vad",  # Voice Activity Detection - skip silent parts
+                    "--vad-model", vad_model_path,
+                    "--vad-threshold", "0.4",  # Higher threshold for more aggressive silence skipping
+                    "--vad-min-speech-duration-ms", "200",  # Shorter minimum speech
+                    "--vad-min-silence-duration-ms", "300",  # Shorter minimum silence
+                ])
+                emit_progress(session_id, 'transcription', 67, 'Using VAD for 40-60% speed boost by skipping silence...')
+                logger.debug("Using VAD model with aggressive silence skipping")
+            else:
+                emit_progress(session_id, 'transcription', 67, 'Processing without VAD (silence detection unavailable)...')
+                logger.info("VAD model not found - consider downloading for 40-60% speed improvement")
+            
+            # Show transcription area immediately when starting
+            emit_progress(session_id, 'transcription', 67, 'Local Whisper starting... Real-time transcription will appear below')
+            
+            # Use real-time whisper execution for streaming updates
+            try:
+                result_code, stdout, stderr = run_whisper_with_realtime_output(whisper_cmd, session_id)
+            except Exception as e:
+                logger.warning(f"Real-time whisper failed, falling back to standard mode: {e}")
+                # Fallback to standard execution with progress simulation
+                emit_progress(session_id, 'transcription', 70, 'Processing audio in segments...', {
+                    'timestamp': '[00:00:00.000 --> 00:00:05.000]',
+                    'text': 'Audio processing started...',
+                    'chunk_number': 1
+                })
+                result = subprocess.run(whisper_cmd, capture_output=True, text=True, check=False)
+                result_code, stdout, stderr = result.returncode, result.stdout, result.stderr
+            
+            logger.debug(f"Whisper-cli stdout: {stdout}")
+            
+            if result_code != 0:
+                logger.error(f"Whisper-cli stderr: {stderr}")
+                return jsonify({'error': f'Local whisper transcription failed: {stderr}', 'session_id': session_id}), 500
 
-        emit_progress(session_id, 'transcription', 80, 'Transcription completed! Reading results...')
+            emit_progress(session_id, 'transcription', 80, 'Local transcription completed! Reading results...')
 
-        # Read transcription
-        if not os.path.exists(transcription_file):
-            return jsonify({'error': f'Transcription file not created: {transcription_file}', 'session_id': session_id}), 500
-        
-        with open(transcription_file, 'r', encoding='utf-8') as f:
-            transcription = f.read().strip()
-        logger.debug(f"Transcription content: {transcription}")
+            # Read transcription from local processing
+            if not os.path.exists(transcription_file):
+                return jsonify({'error': f'Transcription file not created: {transcription_file}', 'session_id': session_id}), 500
+            
+            with open(transcription_file, 'r', encoding='utf-8') as f:
+                transcription = f.read().strip()
+            logger.debug(f"Local transcription content: {transcription}")
 
+        # Validate transcription result (common for both OpenAI and local)
         if not transcription:
             return jsonify({'error': 'Transcription is empty. The audio might be too quiet or contain no speech.', 'session_id': session_id}), 400
 
@@ -515,17 +863,16 @@ def upload_audio():
         conn.commit()
         transcription_id = c.lastrowid
         
+        # Prepare response with cost information if applicable
+        response_message = 'Transcription completed! Download available. Summary being generated...'
+        if use_openai:
+            session_cost = cost_tracker.get_session_cost(session_id)
+            response_message += f' (Cost: ${session_cost:.3f})'
+            if optimization_info:
+                response_message += f' {optimization_info}'
+        
         emit_progress(session_id, 'transcription_ready', 85, 'Transcription ready for download! Starting summarization...')
 
-        # Return transcription immediately - summarization continues in background
-        response_data = {
-            'id': transcription_id, 
-            'transcription': transcription[:200] + '...' if len(transcription) > 200 else transcription,
-            'session_id': session_id,
-            'transcription_ready': True,
-            'message': 'Transcription completed! Download available. Summary being generated...'
-        }
-        
         # Continue summarization in background thread
         def background_summarization():
             try:
@@ -587,7 +934,7 @@ def upload_audio():
         bg_thread.daemon = True
         bg_thread.start()
         
-        return jsonify(response_data)
+        return jsonify({'id': transcription_id, 'transcription': transcription[:200] + '...' if len(transcription) > 200 else transcription, 'session_id': session_id, 'transcription_ready': True, 'message': response_message})
 
     except subprocess.CalledProcessError as e:
         logger.error(f"Subprocess failed: {e.stderr}")
@@ -631,18 +978,42 @@ def tag_summary():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint to verify server is running"""
-    return jsonify({
-        'status': 'healthy',
-        'whisper_available': os.path.exists("./whisper.cpp/build/bin/whisper-cli"),
-        'model_available': os.path.exists("./whisper.cpp/models/ggml-base.bin"),
-        'tiny_model_available': os.path.exists("./whisper.cpp/models/ggml-tiny.bin"),
-        'vad_model_available': os.path.exists("./whisper.cpp/models/ggml-vad.bin"),
-        'ffmpeg_available': subprocess.run(['which', 'ffmpeg'], capture_output=True).returncode == 0,
-        'openai_configured': bool(openai_api_key),
-        'offline_summarization_available': OFFLINE_SUMMARIZATION_AVAILABLE,
-        'websocket_enabled': True
-    })
+    try:
+        # Check database connection
+        c.execute("SELECT COUNT(*) FROM summaries")
+        summary_count = c.fetchone()[0]
+        
+        # Check whisper executable
+        whisper_exe = "./whisper.cpp/build/bin/whisper-cli"
+        whisper_available = os.path.exists(whisper_exe)
+        
+        # Check OpenAI status
+        openai_available = bool(openai_client and openai_api_key)
+        
+        return jsonify({
+            'status': 'healthy',
+            'database_summaries': summary_count,
+            'whisper_available': whisper_available,
+            'openai_available': openai_available,
+            'audio_optimization_available': AUDIO_OPTIMIZATION_AVAILABLE,
+            'offline_summarization_available': OFFLINE_SUMMARIZATION_AVAILABLE
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/cost-tracker', methods=['GET'])
+def get_cost_tracker():
+    """Get current cost tracking information"""
+    try:
+        return jsonify({
+            'total_cost': cost_tracker.get_total_cost(),
+            'session_count': len(cost_tracker.session_costs),
+            'recent_sessions': dict(list(cost_tracker.session_costs.items())[-10:]),  # Last 10 sessions
+            'api_available': bool(openai_client and openai_api_key),
+            'optimization_available': AUDIO_OPTIMIZATION_AVAILABLE
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # WebSocket event handlers
 @socketio.on('connect')
@@ -693,7 +1064,7 @@ def download_transcription(summary_id):
         return jsonify({'error': str(e)}), 500
 
 def run_whisper_with_realtime_output(whisper_cmd, session_id, audio_duration_estimate=None):
-    """Run whisper with real-time output streaming"""
+    """Run whisper with optimized real-time output streaming"""
     import subprocess
     import select
     import os
@@ -703,7 +1074,7 @@ def run_whisper_with_realtime_output(whisper_cmd, session_id, audio_duration_est
     import threading
     
     try:
-        logger.info(f"Starting real-time whisper with command: {' '.join(whisper_cmd)}")
+        logger.info(f"Starting optimized whisper with command: {' '.join(whisper_cmd)}")
         
         # Extract output file path from command
         output_file = None
@@ -712,159 +1083,142 @@ def run_whisper_with_realtime_output(whisper_cmd, session_id, audio_duration_est
                 output_file = whisper_cmd[i + 1] + ".txt"
                 break
         
-        # Function to monitor output file for changes
+        # Optimized function to monitor output file for changes
         def monitor_output_file():
             if not output_file:
                 return
             
             last_size = 0
             chunk_count = 0
+            last_check = time.time()
+            monitoring_active = True
             
-            while True:
+            while monitoring_active:
                 try:
+                    current_time = time.time()
+                    
+                    # Adaptive polling based on activity
+                    if current_time - last_check < 10:
+                        # First 10 seconds: check every 3 seconds
+                        poll_interval = 3
+                    elif current_time - last_check < 30:
+                        # Next 20 seconds: check every 5 seconds  
+                        poll_interval = 5
+                    else:
+                        # After 30 seconds: check every 8 seconds (reduce overhead)
+                        poll_interval = 8
+                    
                     if os.path.exists(output_file):
                         current_size = os.path.getsize(output_file)
                         if current_size > last_size:
                             # File has grown, read new content
-                            with open(output_file, 'r', encoding='utf-8') as f:
-                                f.seek(last_size)
-                                new_content = f.read()
+                            try:
+                                with open(output_file, 'r', encoding='utf-8') as f:
+                                    f.seek(last_size)
+                                    new_content = f.read()
+                                    
+                                    # Parse new content for transcription chunks (optimized)
+                                    lines = [line.strip() for line in new_content.split('\n') if line.strip()]
+                                    for line in lines:
+                                        # Only process substantial lines
+                                        if len(line) > 15 and not line.startswith('[') and not line.startswith('whisper'):
+                                            chunk_count += 1
+                                            # Create simulated timestamp (reduced overhead)
+                                            minutes = (chunk_count - 1) * 3 // 60
+                                            seconds = (chunk_count - 1) * 3 % 60
+                                            end_minutes = chunk_count * 3 // 60
+                                            end_seconds = chunk_count * 3 % 60
+                                            
+                                            transcription_chunk = {
+                                                'timestamp': f'[{minutes:02d}:{seconds:02d}:00 --> {end_minutes:02d}:{end_seconds:02d}:00]',
+                                                'text': line[:80] + ('...' if len(line) > 80 else ''),  # Shorter preview
+                                                'chunk_number': chunk_count
+                                            }
+                                            
+                                            # Less frequent progress updates to reduce overhead
+                                            if chunk_count % 2 == 0:  # Every 2nd chunk
+                                                progress = min(70 + chunk_count, 85)
+                                                emit_progress(session_id, 'transcription', progress, 
+                                                            f'Processing: {line[:40]}...', 
+                                                            transcription_chunk)
+                                        
+                                last_size = current_size
                                 
-                                # Parse new content for transcription chunks
-                                lines = new_content.strip().split('\n')
-                                for line in lines:
-                                    if line.strip() and not line.startswith('[') and len(line.strip()) > 10:
-                                        chunk_count += 1
-                                        # Create simulated timestamp
-                                        minutes = (chunk_count - 1) * 5 // 60
-                                        seconds = (chunk_count - 1) * 5 % 60
-                                        end_minutes = chunk_count * 5 // 60
-                                        end_seconds = chunk_count * 5 % 60
-                                        
-                                        transcription_chunk = {
-                                            'timestamp': f'[{minutes:02d}:{seconds:02d}:00.000 --> {end_minutes:02d}:{end_seconds:02d}:00.000]',
-                                            'text': line.strip()[:100] + ('...' if len(line.strip()) > 100 else ''),
-                                            'chunk_number': chunk_count
-                                        }
-                                        
-                                        emit_progress(session_id, 'transcription', 70 + min(chunk_count * 2, 15), 
-                                                    f'Transcribing: {line.strip()[:50]}...', 
-                                                    transcription_chunk)
-                                        
-                            last_size = current_size
-                            
-                    time.sleep(2)  # Check every 2 seconds
+                            except (IOError, UnicodeDecodeError) as e:
+                                logger.debug(f"File read error (normal): {e}")
+                                
+                    time.sleep(poll_interval)  # Adaptive polling interval
+                    
                 except Exception as e:
                     logger.debug(f"File monitoring error: {e}")
-                    time.sleep(1)
+                    time.sleep(poll_interval)
+                    
+                # Check if we should stop monitoring
+                if current_time - last_check > 300:  # Stop after 5 minutes max
+                    logger.debug("Stopping file monitoring after 5 minutes")
+                    monitoring_active = False
         
-        # Start file monitoring in background thread
+        # Start optimized file monitoring in background thread
         if output_file:
             monitor_thread = threading.Thread(target=monitor_output_file, daemon=True)
             monitor_thread.start()
         
-        # Run whisper process
+        # Run whisper process with optimized settings
         process = subprocess.Popen(
             whisper_cmd, 
             stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE, 
             universal_newlines=True,
-            bufsize=1
+            bufsize=0  # Unbuffered for real-time output
         )
         
-        # Make stdout non-blocking for real-time reading
-        fd = process.stdout.fileno()
-        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-        
+        # Simplified real-time reading (reduced overhead)
         output_lines = []
-        current_transcription = ""
         chunk_count = 0
         
-        # Regex patterns for different whisper output formats
-        timestamp_patterns = [
-            r'\[(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})\]\s*(.+)',  # Standard format
-            r'\[(\d{2}:\d{2}:\d{2}\.\d{3})\]\s*(.+)',  # Simple timestamp
-            r'(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})\s*(.+)',  # No brackets
-        ]
-        
+        # Use more efficient polling
         while True:
             # Check if process is still running
             if process.poll() is not None:
                 break
                 
             try:
-                # Try to read output
-                ready, _, _ = select.select([process.stdout], [], [], 0.5)
+                # Reduced frequency polling to minimize CPU usage
+                ready, _, _ = select.select([process.stdout], [], [], 1.0)  # Increased timeout
                 if ready:
                     line = process.stdout.readline()
                     if line:
                         line = line.strip()
                         output_lines.append(line)
-                        logger.debug(f"Whisper output line: {line}")
                         
-                        # Try to parse transcription chunks with multiple patterns
-                        transcription_found = False
+                        # Only log important lines to reduce overhead
+                        if 'progress' in line.lower() or 'processing' in line.lower():
+                            logger.debug(f"Whisper: {line[:100]}")
                         
-                        for pattern in timestamp_patterns:
-                            match = re.match(pattern, line)
-                            if match:
-                                transcription_found = True
-                                
-                                if len(match.groups()) == 3:
-                                    # Full timestamp format
-                                    start_time, end_time, text = match.groups()
-                                    timestamp_display = f"[{start_time} --> {end_time}]"
-                                else:
-                                    # Simple timestamp format
-                                    start_time, text = match.groups()
-                                    timestamp_display = f"[{start_time}]"
-                                
-                                if text.strip():
-                                    chunk_count += 1
-                                    transcription_chunk = {
-                                        'timestamp': timestamp_display,
-                                        'text': text.strip(),
-                                        'full_line': line,
-                                        'chunk_number': chunk_count
-                                    }
-                                    current_transcription += f"{timestamp_display} {text.strip()}\n"
-                                    
-                                    logger.info(f"Transcription chunk #{chunk_count}: {text.strip()[:50]}...")
-                                    
-                                    # Emit real-time transcription update
-                                    emit_progress(session_id, 'transcription', 70 + (chunk_count % 10), 
-                                                f'Transcribing: {text.strip()[:50]}...', 
-                                                transcription_chunk)
-                                break
-                        
-                        # Also check for other whisper progress indicators
-                        if not transcription_found:
-                            # Look for progress indicators
-                            if 'progress' in line.lower() or '%' in line:
-                                emit_progress(session_id, 'transcription', 65, f'Whisper: {line[:100]}...')
-                            elif 'processing' in line.lower():
-                                emit_progress(session_id, 'transcription', 60, f'Whisper: {line[:100]}...')
+                        # Parse for meaningful progress updates (less frequent)
+                        if chunk_count % 5 == 0 and ('progress' in line.lower() or '%' in line):
+                            chunk_count += 1
+                            emit_progress(session_id, 'transcription', 68, f'Whisper progress: {line[:50]}...')
                 
             except Exception as e:
-                # Non-blocking read might fail, continue
-                logger.debug(f"Non-blocking read exception: {e}")
+                # Reduced error logging frequency
+                if chunk_count % 10 == 0:
+                    logger.debug(f"Read exception: {e}")
                 continue
         
         # Wait for process to complete and get final output
         stdout, stderr = process.communicate()
         if stdout:
             output_lines.extend(stdout.split('\n'))
-            logger.info(f"Final whisper output: {len(output_lines)} lines")
-        
-        if stderr:
-            logger.warning(f"Whisper stderr: {stderr}")
             
-        logger.info(f"Real-time whisper completed. Total chunks emitted: {chunk_count}")
+        if stderr and len(stderr) > 100:  # Only log substantial errors
+            logger.warning(f"Whisper stderr: {stderr[:200]}...")
+            
+        logger.info(f"Optimized whisper completed. Return code: {process.returncode}")
         return process.returncode, '\n'.join(output_lines), stderr
         
     except Exception as e:
-        logger.error(f"Error in real-time whisper execution: {e}")
+        logger.error(f"Error in optimized whisper execution: {e}")
         return -1, "", str(e)
 
 if __name__ == '__main__':
