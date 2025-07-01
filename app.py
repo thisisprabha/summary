@@ -84,7 +84,7 @@ conn.commit()
 
 def detect_language_and_select_model(transcription_sample, user_language_hint=None):
     """
-    Detect language and select appropriate model for speed optimization
+    Detect language optimized for Tamil-English bilingual scenarios
     Returns: (model_path, detected_language)
     """
     
@@ -97,50 +97,97 @@ def detect_language_and_select_model(transcription_sample, user_language_hint=No
             return tiny_model, "en"
         return "./whisper.cpp/models/ggml-base.bin", "en"
     
-    # Improved language detection based on character analysis
+    # Optimized detection for Tamil-English bilingual content
     text_lower = transcription_sample.lower()
     
-    # Tamil Unicode range detection (more comprehensive)
+    # Tamil Unicode range detection (comprehensive for all Tamil scripts)
     tamil_char_count = sum(1 for char in transcription_sample if 0x0B80 <= ord(char) <= 0x0BFF)
     total_chars = len([c for c in transcription_sample if c.isalnum()])
     
-    # Tamil detection patterns (expanded)
+    # Common Tamil words and patterns (expanded for business/meeting context)
     tamil_patterns = [
         'தமிழ்', 'நான்', 'அது', 'இது', 'என்', 'உங்கள்', 'அவர்', 'இவர்', 
         'எங்கள்', 'நம்', 'அவள்', 'இவள்', 'செய்', 'வந்த', 'போன', 'வரும்',
         'உள்ள', 'இருக்க', 'கூட', 'மட்டும்', 'தான்', 'என்று', 'அன்று',
-        'இன்று', 'நாள்', 'மணி', 'நேரம்', 'பேர்', 'விட', 'கொண்ட'
+        'இன்று', 'நாள்', 'மணி', 'நேரம்', 'பேர்', 'விட', 'கொண்ட',
+        # Business/meeting specific Tamil words
+        'மீட்டிங்', 'வேலை', 'பணி', 'திட்டம்', 'செய்யலாம்', 'முடியும்',
+        'ஆகும்', 'வேண்டும்', 'இல்லை', 'உண்டு', 'பார்க்க', 'சொன்ன',
+        'கொடுக்க', 'எடுக்க', 'அனுப்ப', 'வாங்க', 'போக', 'வர',
+        # Common code-switching markers
+        'அப்புறம்', 'இப்ப', 'நம்ம', 'உன்', 'என்ன', 'எப்ப', 'எங்க'
     ]
     
-    # English detection patterns
-    english_patterns = ['the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'is', 'are', 'was', 'were']
+    # English words common in business/technical contexts
+    english_patterns = [
+        'the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'is', 'are', 'was', 'were',
+        'meeting', 'project', 'work', 'team', 'call', 'email', 'update', 'status', 'task',
+        'client', 'customer', 'business', 'process', 'system', 'data', 'report', 'analysis',
+        'we', 'they', 'our', 'their', 'this', 'that', 'can', 'will', 'should', 'need'
+    ]
     
-    # Calculate Tamil score
+    # Calculate Tamil presence score
     tamil_pattern_score = sum(1 for pattern in tamil_patterns if pattern in transcription_sample)
     tamil_unicode_ratio = tamil_char_count / max(total_chars, 1)
     
-    # Calculate English score
+    # Calculate English presence score
     english_score = sum(1 for pattern in english_patterns if pattern in text_lower)
     
-    # Decision logic (more robust)
-    if tamil_unicode_ratio > 0.3 or tamil_pattern_score > 0:  # Any Tamil content
-        logger.debug(f"Tamil detected - Unicode ratio: {tamil_unicode_ratio:.2f}, Pattern score: {tamil_pattern_score}")
-        return "./whisper.cpp/models/ggml-base.bin", "ta"
-    elif english_score >= 2:  # Clear English content
-        logger.debug(f"English detected - Pattern score: {english_score}")
-        tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
-        if os.path.exists(tiny_model):
-            return tiny_model, "en"
-        return "./whisper.cpp/models/ggml-base.bin", "en"
+    # Total word count for ratio calculations
+    words = transcription_sample.split()
+    word_count = len(words)
+    
+    # Decision logic optimized for Tamil-English bilingual scenarios
+    if tamil_unicode_ratio > 0.1 or tamil_pattern_score > 0:  # Any Tamil detected
+        # This is Tamil or mixed Tamil-English
+        if english_score > 5 and word_count > 20:
+            # Significant English content + Tamil = Mixed language
+            logger.debug(f"Mixed Tamil-English detected - Tamil ratio: {tamil_unicode_ratio:.2f}, Tamil patterns: {tamil_pattern_score}, English: {english_score}")
+            # Use base model for mixed content (better for code-switching)
+            return "./whisper.cpp/models/ggml-base.bin", "ta"  # Tamil model handles mixed better
+        else:
+            # Predominantly Tamil
+            logger.debug(f"Tamil detected - Unicode ratio: {tamil_unicode_ratio:.2f}, Pattern score: {tamil_pattern_score}")
+            return "./whisper.cpp/models/ggml-base.bin", "ta"
+    
+    elif english_score >= 3:  # Clear English content
+        # Check for common Tamil-English code-switching patterns in transliterated form
+        transliterated_tamil = ['enna', 'eppo', 'anga', 'inga', 'namma', 'avan', 'aval', 'ithu', 'athu']
+        transliterated_score = sum(1 for pattern in transliterated_tamil if pattern in text_lower)
+        
+        if transliterated_score > 0:
+            # English with Tamil transliteration = Mixed
+            logger.debug(f"Mixed English-Tamil (transliterated) detected - English: {english_score}, Transliterated: {transliterated_score}")
+            return "./whisper.cpp/models/ggml-base.bin", "ta"  # Tamil model better for mixed
+        else:
+            # Pure English
+            logger.debug(f"English detected - Pattern score: {english_score}")
+            tiny_model = "./whisper.cpp/models/ggml-tiny.bin"
+            if os.path.exists(tiny_model):
+                return tiny_model, "en"
+            return "./whisper.cpp/models/ggml-base.bin", "en"
+    
     else:
-        # If unclear, default to base model with auto detection
-        # but bias towards Tamil if any non-ASCII characters
-        if any(ord(char) > 127 for char in transcription_sample):
-            logger.debug("Non-ASCII characters detected, defaulting to Tamil")
+        # Unclear content - use heuristics for Tamil-English environment
+        # Check for non-ASCII characters (likely Tamil)
+        non_ascii_ratio = sum(1 for char in transcription_sample if ord(char) > 127) / max(len(transcription_sample), 1)
+        
+        if non_ascii_ratio > 0.05:  # Any significant non-ASCII = likely Tamil
+            logger.debug(f"Non-ASCII characters detected ({non_ascii_ratio:.2f}), defaulting to Tamil")
             return "./whisper.cpp/models/ggml-base.bin", "ta"
         
-        logger.debug("Language unclear, using auto detection")
-        return "./whisper.cpp/models/ggml-base.bin", "auto"
+        # Default for Tamil-English bilingual environment
+        logger.debug("Language unclear in Tamil-English context, defaulting to Tamil model (better for mixed)")
+        return "./whisper.cpp/models/ggml-base.bin", "ta"
+
+def get_language_description(language_code):
+    """Get user-friendly description for language codes"""
+    descriptions = {
+        'ta': 'Tamil/Mixed Tamil-English',
+        'en': 'Pure English',
+        'auto': 'Auto-detect'
+    }
+    return descriptions.get(language_code, language_code)
 
 def create_offline_summary(text):
     """Create summary using offline T5 model"""
@@ -318,88 +365,86 @@ def upload_audio():
 
         emit_progress(session_id, 'language_detection', 45, 'Detecting language...')
 
-        # Language detection strategy
+        # Language detection strategy optimized for Tamil-English bilingual environment
         if language_hint:
             # User specified language - use directly
             model_path, detected_language = detect_language_and_select_model("", language_hint)
             logger.debug(f"Using user-specified language: {language_hint} -> {detected_language}")
             emit_progress(session_id, 'language_detection', 55, f'Using specified language: {detected_language}')
         else:
-            # Smart detection with Tamil bias for better results
+            # Smart detection optimized for Tamil-English bilingual meetings
             quick_model = "./whisper.cpp/models/ggml-tiny.bin"
             if os.path.exists(quick_model):
-                logger.debug("Running quick language detection...")
-                emit_progress(session_id, 'language_detection', 50, 'Running smart language detection...')
+                logger.debug("Running Tamil-English optimized language detection...")
+                emit_progress(session_id, 'language_detection', 50, 'Detecting Tamil vs English content...')
                 
-                # Try auto detection first
+                # Quick detection with Tamil bias (better for mixed content)
                 quick_whisper_cmd = [
                     whisper_exe,
                     "-m", quick_model,
                     "-f", audio_path,
-                    "-l", "auto",
+                    "-l", "ta",  # Start with Tamil model for better mixed detection
                     "--output-txt",
                     "--output-file", transcription_file.replace('.txt', '_quick')
                 ]
                 
                 quick_result = subprocess.run(quick_whisper_cmd, capture_output=True, text=True, check=False)
                 
-                # Read quick transcription for language detection
+                # Read quick transcription for language analysis
                 quick_transcription = ""
                 if os.path.exists(transcription_file.replace('.txt', '_quick.txt')):
                     with open(transcription_file.replace('.txt', '_quick.txt'), 'r', encoding='utf-8') as f:
                         quick_transcription = f.read().strip()
                 
-                # If auto detection gives English but audio might be Tamil, try Tamil detection
+                # Analyze the Tamil-first transcription
                 model_path, detected_language = detect_language_and_select_model(quick_transcription)
                 
-                # Additional check: If detected as English but transcription looks wrong/garbled, try Tamil
-                if detected_language in ['en', 'english'] and quick_transcription:
-                    # Check if transcription has many short words or nonsensical patterns (indication of wrong language)
-                    words = quick_transcription.split()
-                    short_word_ratio = sum(1 for word in words if len(word) <= 3) / max(len(words), 1)
+                # If detected as pure English, verify with English model for comparison
+                if detected_language == 'en' and quick_transcription:
+                    emit_progress(session_id, 'language_detection', 52, 'Pure English detected, verifying...')
                     
-                    if short_word_ratio > 0.7:  # Too many short words might indicate wrong language detection
-                        logger.debug(f"High short word ratio ({short_word_ratio:.2f}), might be Tamil misdetected as English")
-                        emit_progress(session_id, 'language_detection', 52, 'Possible Tamil audio, re-checking...')
-                        
-                        # Try with Tamil explicitly to see if we get better results
-                        tamil_test_cmd = [
-                            whisper_exe,
-                            "-m", quick_model,
-                            "-f", audio_path,
-                            "-l", "ta",  # Force Tamil
-                            "--output-txt",
-                            "--output-file", transcription_file.replace('.txt', '_tamil_test')
-                        ]
-                        
-                        tamil_result = subprocess.run(tamil_test_cmd, capture_output=True, text=True, check=False)
-                        
-                        if tamil_result.returncode == 0:
-                            tamil_transcription = ""
-                            if os.path.exists(transcription_file.replace('.txt', '_tamil_test.txt')):
-                                with open(transcription_file.replace('.txt', '_tamil_test.txt'), 'r', encoding='utf-8') as f:
-                                    tamil_transcription = f.read().strip()
-                                
-                                if tamil_transcription and len(tamil_transcription) > len(quick_transcription) * 0.5:
-                                    # Tamil transcription seems substantial, use Tamil
-                                    model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
-                                    logger.debug("Tamil test gave better results, switching to Tamil")
+                    # Quick English verification
+                    english_test_cmd = [
+                        whisper_exe,
+                        "-m", quick_model,
+                        "-f", audio_path,
+                        "-l", "en",
+                        "--output-txt",
+                        "--output-file", transcription_file.replace('.txt', '_english_test')
+                    ]
+                    
+                    english_result = subprocess.run(english_test_cmd, capture_output=True, text=True, check=False)
+                    
+                    if english_result.returncode == 0:
+                        english_transcription = ""
+                        if os.path.exists(transcription_file.replace('.txt', '_english_test.txt')):
+                            with open(transcription_file.replace('.txt', '_english_test.txt'), 'r', encoding='utf-8') as f:
+                                english_transcription = f.read().strip()
+                            
+                            # Compare quality: if English version is significantly better, use English
+                            if english_transcription and len(english_transcription) > len(quick_transcription) * 1.2:
+                                logger.debug("English model gave significantly better results")
+                                model_path, detected_language = detect_language_and_select_model(english_transcription, "en")
+                            else:
+                                # Similar quality or Tamil version better = likely mixed content
+                                logger.debug("Similar quality suggests mixed Tamil-English content")
+                                model_path, detected_language = "./whisper.cpp/models/ggml-base.bin", "ta"
                 
-                logger.debug(f"Final language detection - Model: {model_path}, Language: {detected_language}")
-                emit_progress(session_id, 'language_detection', 55, f'Language detected: {detected_language}')
+                logger.debug(f"Tamil-English optimized detection result - Model: {model_path}, Language: {detected_language}")
+                emit_progress(session_id, 'language_detection', 55, f'Optimized for {detected_language}: {get_language_description(detected_language)}')
             else:
-                # No tiny model, default to Tamil for South Asian users
+                # No tiny model available - default to Tamil for better mixed language handling
                 model_path = base_model_path
-                detected_language = "ta"  # Default to Tamil instead of auto
-                logger.debug("Tiny model not available, defaulting to Tamil")
-                emit_progress(session_id, 'language_detection', 55, 'Using Tamil language (default)')
+                detected_language = "ta"
+                logger.debug("Tiny model not available, defaulting to Tamil (better for Tamil-English mixed)")
+                emit_progress(session_id, 'language_detection', 55, 'Using Tamil model (optimized for mixed Tamil-English)')
 
-        # Final transcription with selected model and optimizations
-        emit_progress(session_id, 'transcription', 60, f'Starting optimized transcription with {os.path.basename(model_path)} ({detected_language})...')
+        # Final transcription with optimized model
+        emit_progress(session_id, 'transcription', 60, f'Starting transcription with {os.path.basename(model_path)} ({get_language_description(detected_language)})...')
         
         logger.debug(f"Running whisper-cli with file: {audio_path}, language: {detected_language}")
         
-        # Enhanced whisper command with optimizations (VAD optional)
+        # Enhanced whisper command with optimizations
         whisper_cmd = [
             whisper_exe,
             "-m", model_path,
@@ -407,7 +452,7 @@ def upload_audio():
             "-l", detected_language,
             "--output-txt",
             "--output-file", transcription_file.replace('.txt', ''),  # whisper adds .txt automatically
-            "--diarize",  # Speaker separation (this should work)
+            "--diarize",  # Speaker separation
             "--print-progress",  # Show progress for real-time parsing
             "--print-colors"  # Easier to parse output
         ]
@@ -501,11 +546,11 @@ def upload_audio():
                 os.remove(audio_path)
             if audio_path != os.path.join(uploads_dir, audio_filename) and os.path.exists(os.path.join(uploads_dir, audio_filename)):
                 os.remove(os.path.join(uploads_dir, audio_filename))
-            # Clean up quick transcription files
-            for suffix in ['_quick.txt', '_tamil_test.txt']:
-                quick_file = transcription_file.replace('.txt', suffix)
-                if os.path.exists(quick_file):
-                    os.remove(quick_file)
+            # Clean up language detection test files
+            for suffix in ['_quick.txt', '_english_test.txt']:
+                test_file = transcription_file.replace('.txt', suffix)
+                if os.path.exists(test_file):
+                    os.remove(test_file)
         except Exception as e:
             logger.warning(f"Failed to clean up temporary files: {e}")
 
