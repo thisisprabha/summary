@@ -21,7 +21,9 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Meeting Recorder needs microphone access to record audio for transcription with Tamil/English support.</string>
+    <string>This app needs microphone access to record audio for meeting transcriptions and summaries.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>This app does not use camera, but may request permission as part of media access.</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>Meeting Recorder needs to control other apps to provide enhanced recording features.</string>
     <key>LSApplicationCategoryType</key>

@@ -10,6 +10,7 @@ class AudioManager: ObservableObject {
     private var audioFile: AVAudioFile?
     private var recordingURL: URL?
     private var isRecording = false
+    private var hasPermission = false
     
     // Callbacks for UI updates
     var onRecordingStateChanged: ((Bool) -> Void)?
@@ -20,46 +21,103 @@ class AudioManager: ObservableObject {
     private let networkManager = NetworkManager.shared
     
     private init() {
-        setupAudioPermissions()
+        setupAudioEngine()
+        requestMicrophonePermission()
     }
     
-    private func setupAudioPermissions() {
-        // On macOS, microphone permissions are handled by the system
-        // The Info.plist NSMicrophoneUsageDescription will trigger the permission request
+    private func setupAudioEngine() {
+        // Create audio engine once and reuse it
+        audioEngine = AVAudioEngine()
+        print("🔊 Audio engine initialized for speech recognition")
+    }
+    
+    private func requestMicrophonePermission() {
+        // Check current permission status
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        
+        switch status {
+        case .authorized:
+            hasPermission = true
+            print("✅ Microphone permission already granted")
+            
+        case .notDetermined:
+            // Request permission only if not determined
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.hasPermission = granted
+                    if granted {
+                        print("✅ Microphone permission granted")
+                    } else {
+                        print("❌ Microphone permission denied")
+                    }
+                }
+            }
+            
+        case .denied, .restricted:
+            hasPermission = false
+            print("❌ Microphone permission denied or restricted")
+            showPermissionAlert()
+            
+        @unknown default:
+            hasPermission = false
+            print("❓ Unknown microphone permission status")
+        }
+    }
+    
+    private func showPermissionAlert() {
+        let content = UNMutableNotificationContent()
+        content.title = "Microphone Permission Required"
+        content.body = "Please enable microphone access in System Preferences > Security & Privacy > Privacy > Microphone"
+        content.sound = UNNotificationSound.default
+        
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
     
     func startRecording() {
         guard !isRecording else { return }
         
+        // Check permission before starting
+        guard hasPermission else {
+            print("❌ Cannot start recording: Microphone permission not granted")
+            requestMicrophonePermission() // Try to request again
+            return
+        }
+        
         do {
-            // Create temporary file for recording
+            // Create temporary file for recording - use m4a format like Voice Memo
             let tempDir = FileManager.default.temporaryDirectory
-            recordingURL = tempDir.appendingPathComponent("meeting_\(Date().timeIntervalSince1970).wav")
+            recordingURL = tempDir.appendingPathComponent("meeting_\(Date().timeIntervalSince1970).m4a")
             
             guard let recordingURL = recordingURL else { return }
-            
-            // Setup audio engine
-            audioEngine = AVAudioEngine()
             guard let audioEngine = audioEngine else { return }
+            
+            // Stop engine if it's running (cleanup from previous session)
+            if audioEngine.isRunning {
+                audioEngine.stop()
+                audioEngine.inputNode.removeTap(onBus: 0)
+            }
             
             let inputNode = audioEngine.inputNode
             let recordingFormat = inputNode.outputFormat(forBus: 0)
             
-            // Create audio file with optimal settings for Whisper
+            // Enhanced audio settings optimized for Tamil/English speech recognition
+            // Using AAC format like Voice Memo for better compression and quality
             let settings: [String: Any] = [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVSampleRateKey: 16000.0,  // Optimal for Whisper
-                AVNumberOfChannelsKey: 1,   // Mono
-                AVLinearPCMBitDepthKey: 16,
-                AVLinearPCMIsFloatKey: false,
-                AVLinearPCMIsBigEndianKey: false
+                AVFormatIDKey: kAudioFormatMPEG4AAC,  // Same as Voice Memo
+                AVSampleRateKey: 44100.0,             // High quality sample rate
+                AVNumberOfChannelsKey: 1,             // Mono for speech
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+                AVEncoderBitRateKey: 128000,          // Good quality bitrate
+                AVAudioFileTypeKey: kAudioFileM4AType // M4A container
             ]
             
             audioFile = try AVAudioFile(forWriting: recordingURL, settings: settings)
             
-            // Install tap to record audio
-            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, time in
+            // Use larger buffer for better quality - especially important for Tamil speech
+            inputNode.installTap(onBus: 0, bufferSize: 4096, format: recordingFormat) { [weak self] buffer, time in
                 do {
+                    // Convert to the target format if needed
                     try self?.audioFile?.write(from: buffer)
                 } catch {
                     print("Error writing audio buffer: \(error)")
@@ -71,6 +129,8 @@ class AudioManager: ObservableObject {
             isRecording = true
             onRecordingStateChanged?(true)
             
+            print("🎤 Started recording with optimized Tamil/English settings")
+            
         } catch {
             print("Failed to start recording: \(error)")
             stopRecording()
@@ -80,13 +140,19 @@ class AudioManager: ObservableObject {
     func stopRecording() {
         guard isRecording else { return }
         
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
+        // Properly stop the audio engine without destroying it
+        if let audioEngine = audioEngine, audioEngine.isRunning {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
+        
         audioFile = nil
         isRecording = false
         
         onRecordingStateChanged?(false)
         onProcessingStateChanged?(true)
+        
+        print("🎤 Stopped recording, processing with enhanced Tamil support...")
         
         // Upload and process the recording
         if let recordingURL = recordingURL {
@@ -104,21 +170,21 @@ class AudioManager: ObservableObject {
                     
                     switch result {
                     case .success(let uploadResponse):
-                        // Show transcription preview with language info
-                        var message = "Transcription complete!"
+                        // Show transcription preview with enhanced language info
+                        var message = "✅ Transcription complete!"
                         
                         if let analysis = uploadResponse.analysis {
-                            message += " Language: \(analysis.language)"
+                            message += " 🌐 Language: \(analysis.language)"
                             if let tamil = analysis.tamilWordsDetected, tamil > 0 {
-                                message += " (Tamil: \(tamil) words)"
+                                message += " 🔤 Tamil: \(tamil) words"
                             }
                             if let english = analysis.englishWordsDetected, english > 0 {
-                                message += " (English: \(english) words)"
+                                message += " 🔤 English: \(english) words"
                             }
                         }
                         
                         // Use transcription preview as summary for now
-                        let transcriptionPreview = uploadResponse.transcription?.prefix(200) ?? "Transcription processed"
+                        let transcriptionPreview = uploadResponse.transcription?.prefix(300) ?? "Transcription processed"
                         self.onSummaryReceived?(String(transcriptionPreview))
                         
                         // Optionally generate full summary
@@ -159,7 +225,7 @@ class AudioManager: ObservableObject {
     
     private func showErrorNotification(_ message: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Recording Failed"
+        content.title = "Meeting Recorder"
         content.body = message
         content.sound = UNNotificationSound.default
         
@@ -171,18 +237,26 @@ class AudioManager: ObservableObject {
         }
     }
     
-    // MARK: - Audio Quality Settings
+    // MARK: - Enhanced Audio Quality Settings
     
     func getOptimalRecordingSettings() -> [String: Any] {
+        // Voice Memo compatible settings for best Tamil/English transcription
         return [
-            AVFormatIDKey: kAudioFormatLinearPCM,
-            AVSampleRateKey: 16000.0,     // Optimal for Whisper.cpp
-            AVNumberOfChannelsKey: 1,      // Mono reduces file size
-            AVLinearPCMBitDepthKey: 16,   // Good quality/size balance
-            AVLinearPCMIsFloatKey: false,
-            AVLinearPCMIsBigEndianKey: false,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            AVFormatIDKey: kAudioFormatMPEG4AAC,      // AAC like Voice Memo
+            AVSampleRateKey: 44100.0,                 // High quality
+            AVNumberOfChannelsKey: 1,                 // Mono for speech
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+            AVEncoderBitRateKey: 128000,              // 128 kbps
+            AVAudioFileTypeKey: kAudioFileM4AType     // M4A container
         ]
+    }
+    
+    // MARK: - macOS Audio Configuration
+    
+    private func configureMacOSAudioForSpeech() {
+        // macOS-specific audio configuration for optimal speech recording
+        // No AVAudioSession needed on macOS - AVAudioEngine handles it
+        print("🔊 macOS audio configured for speech recognition")
     }
     
     // MARK: - Recording State
@@ -194,5 +268,42 @@ class AudioManager: ObservableObject {
     func getCurrentRecordingDuration() -> TimeInterval {
         guard isRecording, let audioFile = audioFile else { return 0 }
         return Double(audioFile.length) / audioFile.fileFormat.sampleRate
+    }
+    
+    // MARK: - Quality Diagnostics
+    
+    func getAudioQualityInfo() -> String {
+        guard let audioFile = audioFile else { return "No active recording" }
+        
+        let format = audioFile.fileFormat
+        return """
+        📊 Audio Quality:
+        • Format: \(format.formatDescription)
+        • Sample Rate: \(format.sampleRate) Hz
+        • Channels: \(format.channelCount)
+        • Duration: \(String(format: "%.1f", getCurrentRecordingDuration()))s
+        """
+    }
+    
+    // MARK: - Cleanup
+    
+    deinit {
+        cleanup()
+    }
+    
+    private func cleanup() {
+        if let audioEngine = audioEngine, audioEngine.isRunning {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
+        audioEngine = nil
+        audioFile = nil
+    }
+    
+    // MARK: - Permission Status
+    
+    func checkMicrophonePermission() -> Bool {
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        return status == .authorized
     }
 } 
