@@ -22,72 +22,76 @@ class SummariesWindow: NSWindowController {
 }
 
 struct SummariesView: View {
-    @State private var summaries: [Summary] = []
-    @State private var isLoading = true
+    @StateObject private var networkManager = NetworkManager.shared
+    @State private var transcriptionHistory: [TranscriptionHistory] = []
+    @State private var isLoading = false
     @State private var errorMessage: String?
-    
-    private let networkManager = NetworkManager.shared
     
     var body: some View {
         NavigationView {
-            VStack {
+            Group {
                 if isLoading {
-                    ProgressView("Loading summaries...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error = errorMessage {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        
+                        Text("Loading history...")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let errorMessage = errorMessage {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.largeTitle)
-                            .foregroundColor(.orange)
+                            .foregroundColor(.red)
                         
-                        Text("Error Loading Summaries")
+                        Text("Error Loading History")
                             .font(.headline)
                         
-                        Text(error)
+                        Text(errorMessage)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
                         
                         Button("Retry") {
-                            loadSummaries()
+                            loadHistory()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if summaries.isEmpty {
+                } else if transcriptionHistory.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "doc.text")
                             .font(.largeTitle)
                             .foregroundColor(.secondary)
                         
-                        Text("No Summaries Yet")
+                        Text("No Recordings Yet")
                             .font(.headline)
                         
-                        Text("Start recording meetings to see summaries here")
+                        Text("Start recording meetings to see transcriptions here")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List(summaries) { summary in
-                        SummaryRowView(summary: summary)
+                    List(transcriptionHistory) { item in
+                        TranscriptionRowView(transcription: item)
                     }
                 }
             }
-            .navigationTitle("Recent Summaries")
+            .navigationTitle("Meeting History")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Refresh") {
-                        loadSummaries()
+                        loadHistory()
                     }
                 }
             }
         }
         .onAppear {
-            loadSummaries()
+            loadHistory()
         }
     }
     
-    private func loadSummaries() {
+    private func loadHistory() {
         isLoading = true
         errorMessage = nil
         
@@ -98,8 +102,8 @@ struct SummariesView: View {
                 isLoading = false
                 
                 switch result {
-                case .success(let fetchedSummaries):
-                    summaries = fetchedSummaries
+                case .success(let fetchedHistory):
+                    transcriptionHistory = fetchedHistory
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }
@@ -108,8 +112,8 @@ struct SummariesView: View {
     }
 }
 
-struct SummaryRowView: View {
-    let summary: Summary
+struct TranscriptionRowView: View {
+    let transcription: TranscriptionHistory
     @State private var isDownloading = false
     
     private let networkManager = NetworkManager.shared
@@ -117,30 +121,36 @@ struct SummaryRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Summary #\(summary.id)")
+                Text(transcription.filename)
                     .font(.headline)
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
-                Text(formatDate(summary.createdAt))
+                Text(formatDate(transcription.createdAt))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             
-            Text(summary.summary)
-                .font(.body)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
-            
-            if let tag = summary.tag, !tag.isEmpty {
-                Text("Tag: \(tag)")
+            HStack {
+                Text("Size: \(formatFileSize(transcription.fileSize))")
                     .font(.caption)
-                    .foregroundColor(.blue)
-                    .italic()
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                if transcription.hasSummary {
+                    Label("Summary Available", systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                } else {
+                    Label("Transcription Only", systemImage: "doc.text")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
             }
             
-            HStack {
+            HStack(spacing: 8) {
                 Button(action: {
                     downloadTranscription()
                 }) {
@@ -149,22 +159,28 @@ struct SummaryRowView: View {
                             ProgressView()
                                 .scaleEffect(0.7)
                         } else {
-                            Image(systemName: "square.and.arrow.down")
+                            Image(systemName: "doc.text")
                         }
-                        Text("Download Transcript")
+                        Text("Transcription")
                     }
                 }
                 .disabled(isDownloading)
                 .buttonStyle(.bordered)
                 
-                Spacer()
-                
-                Button("Copy Summary") {
-                    let pasteboard = NSPasteboard.general
-                    pasteboard.clearContents()
-                    pasteboard.setString(summary.summary, forType: .string)
+                if transcription.hasSummary {
+                    Button(action: {
+                        downloadSummary()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "doc.richtext")
+                            Text("Summary")
+                        }
+                    }
+                    .disabled(isDownloading)
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
+                
+                Spacer()
             }
         }
         .padding(.vertical, 8)
@@ -174,14 +190,14 @@ struct SummaryRowView: View {
         isDownloading = true
         
         Task {
-            let result = await networkManager.downloadTranscription(summaryId: summary.id)
+            let result = await networkManager.downloadTranscription(transcriptionId: transcription.id)
             
             await MainActor.run {
                 isDownloading = false
                 
                 switch result {
-                case .success(let transcription):
-                    saveTranscription(transcription)
+                case .success(let content):
+                    saveFile(content: content, filename: "transcript_\(transcription.id).txt")
                 case .failure(let error):
                     showErrorAlert(error.localizedDescription)
                 }
@@ -189,20 +205,39 @@ struct SummaryRowView: View {
         }
     }
     
-    private func saveTranscription(_ transcription: String) {
+    private func downloadSummary() {
+        isDownloading = true
+        
+        Task {
+            let result = await networkManager.downloadSummary(transcriptionId: transcription.id)
+            
+            await MainActor.run {
+                isDownloading = false
+                
+                switch result {
+                case .success(let content):
+                    saveFile(content: content, filename: "summary_\(transcription.id).txt")
+                case .failure(let error):
+                    showErrorAlert(error.localizedDescription)
+                }
+            }
+        }
+    }
+    
+    private func saveFile(content: String, filename: String) {
         let savePanel = NSSavePanel()
-        savePanel.nameFieldStringValue = "meeting_transcript_\(summary.id).txt"
+        savePanel.nameFieldStringValue = filename
         savePanel.allowedContentTypes = [.plainText]
         
         if savePanel.runModal() == .OK {
             guard let url = savePanel.url else { return }
             
             do {
-                try transcription.write(to: url, atomically: true, encoding: .utf8)
+                try content.write(to: url, atomically: true, encoding: .utf8)
                 
                 // Show success notification
                 let content = UNMutableNotificationContent()
-                content.title = "Transcript Downloaded"
+                content.title = "File Downloaded"
                 content.body = "Saved to \(url.lastPathComponent)"
                 content.sound = UNNotificationSound.default
                 
@@ -239,6 +274,19 @@ struct SummaryRowView: View {
         }
         
         return dateString
+    }
+    
+    private func formatFileSize(_ size: Int) -> String {
+        let sizeInKB = Double(size) / 1024
+        let sizeInMB = sizeInKB / 1024
+        
+        if sizeInMB > 1 {
+            return "\(String(format: "%.2f", sizeInMB)) MB"
+        } else if sizeInKB > 1 {
+            return "\(String(format: "%.2f", sizeInKB)) KB"
+        } else {
+            return "\(size) bytes"
+        }
     }
 }
 

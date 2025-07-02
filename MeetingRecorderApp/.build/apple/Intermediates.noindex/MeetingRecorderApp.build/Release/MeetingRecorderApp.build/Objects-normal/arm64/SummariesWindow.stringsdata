@@ -1,0 +1,104 @@
+{
+  "source": "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Meeting History",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 80
+        }
+      },
+      {
+        "comment": "",
+        "key": "Loading history...",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "Error Loading History",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 55
+        }
+      },
+      {
+        "comment": "",
+        "key": "No Recordings Yet",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start recording meetings to see transcriptions here",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
+        "key": "Size: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 136
+        }
+      },
+      {
+        "comment": "",
+        "key": "Summary Available",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transcription Only",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transcription",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 164
+        }
+      },
+      {
+        "comment": "",
+        "key": "Summary",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 176
+        }
+      }
+    ]
+  },
+  "version": 1
+}

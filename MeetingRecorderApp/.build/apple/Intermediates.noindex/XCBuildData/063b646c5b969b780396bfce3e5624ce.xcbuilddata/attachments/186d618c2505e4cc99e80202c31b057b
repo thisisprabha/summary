@@ -1,0 +1,45 @@
+{
+  "" : {
+    "const-values" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MeetingRecorderApp-master.swiftconstvalues",
+    "dependencies" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MeetingRecorderApp-master.d",
+    "diagnostics" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MeetingRecorderApp-master.dia",
+    "emit-module-dependencies" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MeetingRecorderApp-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MeetingRecorderApp-master-emit-module.dia",
+    "swift-dependencies" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MeetingRecorderApp-master.swiftdeps"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AppDelegate.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/AppDelegate.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/AppDelegate.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/AppDelegate.o"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AudioManager.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/AudioManager.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/AudioManager.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/AudioManager.o"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/MenuBarManager.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MenuBarManager.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MenuBarManager.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/MenuBarManager.o"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/NetworkManager.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/NetworkManager.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/NetworkManager.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/NetworkManager.o"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SettingsView.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/SettingsView.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/SettingsView.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/SettingsView.o"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/SummariesWindow.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/SummariesWindow.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/SummariesWindow.o"
+  },
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/main.swift" : {
+    "index-unit-output-path" : "/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/main.o",
+    "llvm-bc" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/main.bc",
+    "object" : "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/.build/apple/Intermediates.noindex/MeetingRecorderApp.build/Release/MeetingRecorderApp.build/Objects-normal/x86_64/main.o"
+  }
+}

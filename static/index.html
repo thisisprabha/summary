@@ -1,842 +1,628 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Meeting Recorder</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Recorder - Terminal Style</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'VT323', monospace;
-            font-size: 20px;
-            margin: 10px;
-            background-color: #f0f0f0;
-            color: #333;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            min-height: 100vh;
+            line-height: 1.4;
+            overflow-x: auto;
         }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-        }
-        .container {
-            max-width: 800px;
+
+        .terminal {
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            background: #111111;
+            border: 2px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+            min-height: calc(100vh - 40px);
         }
-        .button-container {
+
+        .header {
             text-align: center;
-            margin: 20px 0;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
         }
-        button {
-            font-family: 'VT323', monospace;
-            font-size: 18px;
-            padding: 12px 24px;
-            margin: 8px;
-            cursor: pointer;
-            border: 2px solid #3498db;
-            background: #3498db;
-            color: white;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-        button:hover {
-            background: #2980b9;
-            border-color: #2980b9;
-        }
-        button:disabled {
-            background: #bdc3c7;
-            border-color: #bdc3c7;
-            cursor: not-allowed;
-        }
-        .record-button {
-            background: #e74c3c;
-            border-color: #e74c3c;
-        }
-        .record-button:hover {
-            background: #c0392b;
-            border-color: #c0392b;
-        }
-        .stop-button {
-            background: #f39c12;
-            border-color: #f39c12;
-        }
-        .stop-button:hover {
-            background: #e67e22;
-            border-color: #e67e22;
-        }
-        #uploadInput {
-            font-family: 'VT323', monospace;
-            font-size: 18px;
-            padding: 10px;
-            margin: 8px;
-            border: 2px solid #34495e;
-            border-radius: 5px;
-        }
-        .status {
-            text-align: center;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .status.recording {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ef5350;
-        }
-        .status.success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 1px solid #4caf50;
-        }
-        .status.error {
-            background: #fff3e0;
-            color: #f57c00;
-            border: 1px solid #ff9800;
-        }
-        
-        /* Progress Bar Styles */
-        .progress-container {
-            background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: none;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 25px;
-            background-color: #ecf0f1;
-            border-radius: 12px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3498db, #2ecc71);
-            width: 0%;
-            transition: width 0.5s ease;
-            border-radius: 12px;
-            position: relative;
-        }
-        .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-        .progress-stage {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2c3e50;
+
+        .ascii-art {
+            color: #00ffff;
+            font-size: 12px;
+            white-space: pre;
             margin-bottom: 10px;
         }
-        .progress-message {
-            font-size: 16px;
-            color: #7f8c8d;
-            margin-top: 5px;
+
+        .system-info {
+            color: #ffff00;
+            margin-bottom: 20px;
         }
-        .connection-status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            border-radius: 5px;
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        .section-title {
+            color: #ff6600;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .upload-area {
+            border: 2px dashed #00ff00;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #0f0f0f;
+        }
+
+        .upload-area:hover {
+            border-color: #00ffff;
+            background: #151515;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
             font-size: 14px;
-            z-index: 1000;
+            transition: all 0.3s ease;
         }
-        .connection-status.connected {
-            background: #2ecc71;
-            color: white;
+
+        .btn:hover {
+            background: #00ff00;
+            color: #000;
         }
-        .connection-status.disconnected {
-            background: #e74c3c;
-            color: white;
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
-        
-        #summaryList {
-            list-style: none;
-            padding: 0;
+
+        .btn-secondary {
+            border-color: #ffff00;
+            color: #ffff00;
         }
-        #summaryList li {
-            background: #fff;
+
+        .btn-secondary:hover {
+            background: #ffff00;
+            color: #000;
+        }
+
+        .btn-danger {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .btn-danger:hover {
+            background: #ff0000;
+            color: #fff;
+        }
+
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid;
+            background: #1a1a1a;
+            font-family: inherit;
+        }
+
+        .status.success {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        .status.error {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .status.processing {
+            border-color: #ffff00;
+            color: #ffff00;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .code-block {
+            background: #0a0a0a;
+            border: 1px solid #333;
             padding: 15px;
             margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            word-wrap: break-word;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
         }
-        .loading {
+
+        .transcription {
+            color: #cccccc;
+        }
+
+        .summary {
+            color: #99ff99;
+        }
+
+        .speaker {
+            color: #ff9999;
+            font-weight: bold;
+        }
+
+        .history-section {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #0f0f0f;
+            border: 1px solid #333;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .history-item:hover {
+            border-color: #00ff00;
+        }
+
+        .history-meta {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .action-buttons {
+            margin-top: 10px;
+        }
+
+        .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        @media (max-width: 600px) {
-            body { font-size: 16px; }
-            button { font-size: 16px; padding: 10px 20px; }
-            #uploadInput { font-size: 16px; padding: 8px; }
-            .progress-container { margin: 10px 0; padding: 15px; }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border: 1px solid #666;
+            margin: 10px 0;
         }
-        
-        /* Real-time Transcription Styles */
-        .realtime-transcription {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00);
+            width: 0%;
+            transition: width 0.3s ease;
         }
-        .realtime-transcription h4 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-            font-size: 16px;
+
+        .cost-info {
+            color: #ffff00;
+            font-size: 12px;
+            margin-top: 10px;
         }
-        .transcription-content {
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.4;
-            white-space: pre-wrap;
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
         }
-        .transcription-chunk {
-            margin-bottom: 5px;
-            padding: 2px 0;
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: #1a1a1a;
+            color: #666;
+            font-family: inherit;
         }
-        .transcription-timestamp {
-            color: #7f8c8d;
-            font-weight: bold;
+
+        .tab.active {
+            color: #00ff00;
+            border-bottom: 2px solid #00ff00;
         }
-        .transcription-text {
-            color: #2c3e50;
-            margin-left: 10px;
+
+        .tab-content {
+            display: none;
         }
-        .download-btn {
-            background: #27ae60;
-            border-color: #27ae60;
-            font-size: 14px;
-            padding: 8px 16px;
-            margin: 5px;
+
+        .tab-content.active {
+            display: block;
         }
-        .download-btn:hover {
-            background: #229954;
-            border-color: #229954;
+
+        @media (max-width: 768px) {
+            .terminal {
+                padding: 10px;
+                margin: 10px;
+            }
+            
+            .ascii-art {
+                font-size: 8px;
+            }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <!-- Socket.IO Client Library -->
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 </head>
 <body>
-    <!-- Connection Status Indicator -->
-    <div id="connectionStatus" class="connection-status disconnected">🔴 Disconnected</div>
-    
-    <div class="container">
-        <h1>🎤 Meeting Recorder & Summarizer</h1>
-        
-        <div class="button-container">
-            <div>
-                <button id="recordButton" class="record-button">🔴 Start Recording</button>
-                <button id="stopButton" class="stop-button" disabled>⏹️ Stop Recording</button>
+    <div class="terminal">
+        <div class="header">
+            <div class="ascii-art">
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  ███╗   ███╗███████╗███████╗████████╗██╗███╗   ██╗ ██████╗                 ║
+║  ████╗ ████║██╔════╝██╔════╝╚══██╔══╝██║████╗  ██║██╔════╝                 ║
+║  ██╔████╔██║█████╗  █████╗     ██║   ██║██╔██╗ ██║██║  ███╗                ║
+║  ██║╚██╔╝██║██╔══╝  ██╔══╝     ██║   ██║██║╚██╗██║██║   ██║                ║
+║  ██║ ╚═╝ ██║███████╗███████╗   ██║   ██║██║ ╚████║╚██████╔╝                ║
+║  ╚═╝     ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝                 ║
+║                                                                              ║
+║  ██████╗ ███████╗ ██████╗ ██████╗ ██████╗ ██████╗ ███████╗██████╗          ║
+║  ██╔══██╗██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗         ║
+║  ██████╔╝█████╗  ██║     ██║   ██║██████╔╝██║  ██║█████╗  ██████╔╝         ║
+║  ██╔══██╗██╔══╝  ██║     ██║   ██║██╔══██╗██║  ██║██╔══╝  ██╔══██╗         ║
+║  ██║  ██║███████╗╚██████╗╚██████╔╝██║  ██║██████╔╝███████╗██║  ██║         ║
+║  ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
             </div>
-            <div id="recordingStatus" class="status" style="display: none;"></div>
-            <hr style="margin: 20px 0;">
-            <div>
-                <div style="margin-bottom: 10px;">
-                    <label for="languageSelect" style="display: inline-block; margin-right: 10px; font-weight: bold;">🌐 Language:</label>
-                    <select id="languageSelect" style="font-family: 'VT323', monospace; font-size: 16px; padding: 8px; border: 2px solid #34495e; border-radius: 5px; background: white;">
-                        <option value="auto">🤖 Smart Detection (Tamil+English)</option>
-                        <option value="ta">🇮🇳 Tamil/Mixed (தமிழ் + English)</option>
-                        <option value="en">🇺🇸 Pure English Only</option>
-                    </select>
-                    <small style="display: block; color: #7f8c8d; margin-top: 5px;">💡 Smart Detection works best for Tamil+English meetings</small>
+            <div class="system-info">
+                <div>SYSTEM: Meeting Recorder v2.0 - Enhanced OpenAI Terminal</div>
+                <div>FEATURES: Auto-cleanup | Download History | MOM Generation | Message Format</div>
+                <div>OPTIMIZED: English/Tamil Language Switching Support</div>
+                <div id="systemStatus">STATUS: Initializing...</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('upload')">► UPLOAD</button>
+            <button class="tab" onclick="switchTab('history')">► HISTORY</button>
+            <button class="tab" onclick="switchTab('system')">► SYSTEM</button>
+        </div>
+
+        <!-- Upload Tab -->
+        <div id="upload-tab" class="tab-content active">
+            <div class="section">
+                <div class="section-title">[ FILE UPLOAD MODULE ]</div>
+                <div class="upload-area" onclick="document.getElementById('audioFile').click()">
+                    <div>┌─────────────────────────────────────────┐</div>
+                    <div>│  📁 DROP AUDIO FILE HERE OR CLICK       │</div>
+                    <div>│                                         │</div>
+                    <div>│  Supported: MP3, WAV, M4A, OGG, FLAC   │</div>
+                    <div>│  Languages: English & Tamil Optimized  │</div>
+                    <div>│  Format: Clean message format           │</div>
+                    <div>│  Max Size: 25MB                        │</div>
+                    <div>└─────────────────────────────────────────┘</div>
+                    <input type="file" id="audioFile" class="file-input" accept="audio/*">
+                </div>
+                <div class="action-buttons">
+                    <button class="btn" id="uploadButton">UPLOAD & PROCESS</button>
+                </div>
+                <div class="status" id="status" style="display: none;"></div>
+            </div>
+
+            <div class="section results" id="results">
+                <div class="section-title">[ TRANSCRIPTION OUTPUT ]</div>
+                <div class="code-block transcription" id="transcription"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="downloadTranscriptionBtn">📥 DOWNLOAD TRANSCRIPTION</button>
+                    <button class="btn" id="summarizeBtn">🧠 GENERATE MOM SUMMARY</button>
+                </div>
+                <div class="cost-info" id="costInfo"></div>
                 </div>
                 
-                <div style="margin-bottom: 15px;">
-                    <label for="transcriptionMethodSelect" style="display: inline-block; margin-right: 10px; font-weight: bold;">⚡ Processing:</label>
-                    <select id="transcriptionMethodSelect" style="font-family: 'VT323', monospace; font-size: 16px; padding: 8px; border: 2px solid #34495e; border-radius: 5px; background: white;">
-                        <option value="auto">🎯 Smart Auto (Recommended)</option>
-                        <option value="openai_fast">🚀 OpenAI Fast (Small Cost)</option>
-                        <option value="local_free">🆓 Local Free (Slower)</option>
-                    </select>
-                    <small style="display: block; color: #7f8c8d; margin-top: 5px;">
-                        <strong>🎯 Smart Auto:</strong> OpenAI for &lt;2min (${0.012}), Local for longer<br>
-                        <strong>🚀 OpenAI Fast:</strong> $0.006/minute, ultra-fast, perfect Tamil accuracy<br>
-                        <strong>🆓 Local Free:</strong> No cost, slower, good for long recordings
-                    </small>
+            <div class="section" id="summarySection" style="display: none;">
+                <div class="section-title">[ MEETING MINUTES (MOM) ]</div>
+                <div class="code-block summary" id="summary"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="downloadSummaryBtn">📥 DOWNLOAD SUMMARY</button>
                 </div>
-                <input type="file" id="uploadInput" accept="audio/*,.wav,.mp3,.m4a,.ogg">
-                <button id="uploadButton">📁 Upload Audio File</button>
             </div>
         </div>
 
-        <!-- Real-time Progress Container -->
-        <div id="progressContainer" class="progress-container">
-            <div id="progressStage" class="progress-stage">Starting...</div>
-            <div class="progress-bar">
-                <div id="progressFill" class="progress-fill">
-                    <div id="progressText" class="progress-text">0%</div>
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="section">
+                <div class="section-title">[ PROCESSING HISTORY ]</div>
+                <button class="btn" onclick="loadHistory()">🔄 REFRESH HISTORY</button>
+                <div class="history-section" id="historyList">
+                    <div>Loading history...</div>
                 </div>
-            </div>
-            <div id="progressMessage" class="progress-message">Initializing...</div>
-            
-            <!-- Real-time Transcription Display -->
-            <div id="realtimeTranscription" class="realtime-transcription" style="display: none;">
-                <h4>🎤 Live Transcription:</h4>
-                <div id="transcriptionContent" class="transcription-content"></div>
             </div>
         </div>
 
-        <div id="processingStatus" class="status" style="display: none;"></div>
-
-        <h2>📋 Recent Summaries</h2>
-        <ul id="summaryList">
-            <li>Loading summaries...</li>
-        </ul>
+        <!-- System Tab -->
+        <div id="system-tab" class="tab-content">
+            <div class="section">
+                <div class="section-title">[ SYSTEM INFORMATION ]</div>
+                <div class="code-block" id="systemInfo">Loading system information...</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        let mediaRecorder;
-        let audioChunks = [];
-        let stream;
-        let socket;
-        let currentSessionId = null;
+        let currentTranscription = '';
+        let currentTranscriptionId = null;
+        let currentFilename = '';
 
-        // Get the current host for API calls
-        const API_BASE = window.location.origin;
-
-        // Initialize Socket.IO connection
-        function initSocket() {
-            socket = io(API_BASE);
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
             
-            socket.on('connect', () => {
-                console.log('WebSocket connected');
-                updateConnectionStatus(true);
-            });
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
             
-            socket.on('disconnect', () => {
-                console.log('WebSocket disconnected');
-                updateConnectionStatus(false);
-            });
-            
-            socket.on('connected', (data) => {
-                console.log('Server confirmed connection:', data.message);
-            });
-            
-            socket.on('progress_update', (data) => {
-                updateProgress(data);
-            });
-            
-            socket.on('summary_ready', (data) => {
-                console.log('Summary completed:', data);
-                
-                // Allow device to sleep now that processing is complete
-                allowSleep();
-                
-                // Hide any existing processing status
-                hideProcessingStatus();
-                
-                // Show completion notification
-                const completionMsg = `✅ Summary Generated!\n\n` +
-                    `📄 Transcription: Available for download\n` +
-                    `📋 Summary: ${data.summary}\n\n` +
-                    `Processing complete!`;
-                
-                alert(completionMsg);
-                
-                // Refresh the summaries list to show updated summary
-                fetchSummaries();
-            });
-            
-            socket.on('joined_session', (data) => {
-                console.log('Joined session:', data.session_id);
-            });
-        }
-
-        // Update connection status indicator
-        function updateConnectionStatus(connected) {
-            const statusDiv = document.getElementById('connectionStatus');
-            if (connected) {
-                statusDiv.textContent = '🟢 Connected';
-                statusDiv.className = 'connection-status connected';
-            } else {
-                statusDiv.textContent = '🔴 Disconnected';
-                statusDiv.className = 'connection-status disconnected';
+            // Load data for specific tabs
+            if (tabName === 'history') {
+                loadHistory();
+            } else if (tabName === 'system') {
+                loadSystemInfo();
             }
         }
 
-        // Update progress display
-        function updateProgress(data) {
-            const container = document.getElementById('progressContainer');
-            const stage = document.getElementById('progressStage');
-            const fill = document.getElementById('progressFill');
-            const text = document.getElementById('progressText');
-            const message = document.getElementById('progressMessage');
-            const realtimeDiv = document.getElementById('realtimeTranscription');
-            const transcriptionContent = document.getElementById('transcriptionContent');
-            
-            // Show progress container
-            container.style.display = 'block';
-            
-            // Update progress bar
-            fill.style.width = data.progress + '%';
-            text.textContent = data.progress + '%';
-            
-            // Update stage and message
-            stage.textContent = `${data.stage.charAt(0).toUpperCase() + data.stage.slice(1)} Stage`;
-            message.textContent = data.message;
-            
-            // Show transcription area when transcription starts
-            if (data.stage === 'transcription') {
-                realtimeDiv.style.display = 'block';
+        // File upload handling
+        document.getElementById('audioFile').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                uploadFile(file);
+            }
+        });
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.innerHTML = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            showStatus('<span class="spinner">⣷</span> PROCESSING: Uploading to OpenAI Whisper API...', 'processing');
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('summarySection').style.display = 'none';
+            document.getElementById('uploadButton').disabled = true;
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('uploadButton').disabled = false;
                 
-                // Debug logging
-                console.log('Transcription stage detected:', data);
-                
-                // Handle real-time transcription chunks
-                if (data.transcription_chunk) {
-                    console.log('Transcription chunk received:', data.transcription_chunk);
+                if (data.success) {
+                    // Check for message format instead of speaker labels
+                    const hasMessageFormat = data.transcription.includes('💬');
+                    const displayMode = hasMessageFormat ? 'Message format' : 'Plain text';
                     
-                    // Add new transcription chunk
-                    const chunkDiv = document.createElement('div');
-                    chunkDiv.className = 'transcription-chunk';
-                    chunkDiv.innerHTML = `
-                        <span class="transcription-timestamp">${data.transcription_chunk.timestamp}</span>
-                        <span class="transcription-text">${data.transcription_chunk.text}</span>
-                    `;
+                    showStatus(`✅ SUCCESS: Transcription completed! ${displayMode} applied.`, 'success');
                     
-                    transcriptionContent.appendChild(chunkDiv);
+                    // Store data
+                    currentTranscription = data.transcription;
+                    currentTranscriptionId = data.transcription_id;
+                    currentFilename = data.filename;
                     
-                    // Auto-scroll to bottom
-                    transcriptionContent.scrollTop = transcriptionContent.scrollHeight;
-                } else {
-                    // Show placeholder message when no chunks yet
-                    if (transcriptionContent.children.length === 0) {
-                        const placeholderDiv = document.createElement('div');
-                        placeholderDiv.className = 'transcription-placeholder';
-                        placeholderDiv.style.color = '#7f8c8d';
-                        placeholderDiv.style.fontStyle = 'italic';
-                        placeholderDiv.textContent = 'Waiting for transcription output from Whisper...';
-                        transcriptionContent.appendChild(placeholderDiv);
+                    // Format and show transcription
+                    document.getElementById('transcription').innerHTML = data.transcription.replace(/💬/g, '<span style="color: #00ffff;">💬</span>');
+                    document.getElementById('results').style.display = 'block';
+                    
+                    // Enable buttons
+                    document.getElementById('summarizeBtn').disabled = false;
+                    document.getElementById('downloadTranscriptionBtn').onclick = () => downloadFile(data.download_url);
+                    
+                    // Enhanced cost info with detailed analysis
+                    const fileSizeMB = file.size / (1024 * 1024);
+                    const estimatedCost = (fileSizeMB * 0.006).toFixed(3);
+                    
+                    let analysisText = '';
+                    if (data.analysis) {
+                        const tamilInfo = data.analysis.tamil_words_detected ? 
+                            ` | Tamil: ${data.analysis.tamil_words_detected} words` : '';
+                        const englishInfo = data.analysis.english_words_detected ? 
+                            ` | English: ${data.analysis.english_words_detected} words` : '';
+                        
+                        analysisText = ` | Language: ${data.analysis.language} | Quality: ${data.analysis.quality} | Total Words: ${data.analysis.total_words}${tamilInfo}${englishInfo}`;
                     }
+                    
+                    document.getElementById('costInfo').innerHTML = 
+                        `💰 Cost: $${estimatedCost} | File: ${file.name} | ID: ${data.transcription_id} | Format: ${displayMode}${analysisText}`;
+                    
+                } else {
+                    showStatus('❌ ERROR: ' + data.error, 'error');
                 }
-            }
-            
-            // Hide when complete
-            if (data.progress >= 100) {
-                setTimeout(() => {
-                    container.style.display = 'none';
-                    realtimeDiv.style.display = 'none';
-                    transcriptionContent.innerHTML = ''; // Clear for next session
-                }, 5000); // Increased to 5 seconds so you can see the final result
-            }
-            
-            console.log(`Progress: ${data.stage} - ${data.progress}% - ${data.message}`);
+            })
+            .catch(error => {
+                document.getElementById('uploadButton').disabled = false;
+                console.error('Error:', error);
+                showStatus('❌ NETWORK ERROR: ' + error.message, 'error');
+            });
         }
 
-        // Initialize audio recording with detailed error handling
-        async function initRecorder() {
-            const recordButton = document.getElementById('recordButton');
-            const statusDiv = document.getElementById('recordingStatus');
-            
-            // Check if browser supports required APIs
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showStatus('Microphone access not supported in this browser. Please use the upload option.', 'error');
-                recordButton.disabled = true;
+        function generateSummary() {
+            if (!currentTranscription) {
+                showStatus('❌ ERROR: No transcription available', 'error');
                 return;
             }
 
-            try {
-                console.log('Requesting microphone access...');
-                
-                // Request microphone access with optimal settings
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                        sampleRate: 16000 // Optimal for Whisper
-                    } 
-                });
-                
-                console.log('Microphone access granted');
-                
-                // Create MediaRecorder with supported format
-                const options = [];
-                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                    options.push({ mimeType: 'audio/webm;codecs=opus' });
-                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-                    options.push({ mimeType: 'audio/webm' });
-                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    options.push({ mimeType: 'audio/mp4' });
-                }
-                
-                mediaRecorder = new MediaRecorder(stream, options[0] || {});
-                
-                mediaRecorder.ondataavailable = event => {
-                    if (event.data.size > 0) {
-                        audioChunks.push(event.data);
-                    }
-                };
-                
-                mediaRecorder.onstop = async () => {
-                    console.log('Recording stopped, processing audio...');
-                    showStatus('Processing recording...', 'success');
-                    
-                    const audioBlob = new Blob(audioChunks, { 
-                        type: mediaRecorder.mimeType || 'audio/webm' 
-                    });
-                    
-                    // Get file extension based on MIME type
-                    let extension = '.webm';
-                    if (mediaRecorder.mimeType) {
-                        if (mediaRecorder.mimeType.includes('mp4')) extension = '.mp4';
-                        else if (mediaRecorder.mimeType.includes('webm')) extension = '.webm';
-                    }
-                    
-                    await uploadAudio(audioBlob, `recording_${Date.now()}${extension}`);
-                    audioChunks = [];
-                };
+            document.getElementById('summarizeBtn').disabled = true;
+            showStatus('<span class="spinner">⣷</span> PROCESSING: Generating MOM summary with OpenAI GPT...', 'processing');
 
-                recordButton.disabled = false;
-                showStatus('Microphone ready! Click "Start Recording" to begin.', 'success');
-                
-            } catch (error) {
-                console.error('Microphone error:', error);
-                let errorMessage = 'Microphone access denied or not available. ';
-                
-                if (error.name === 'NotAllowedError') {
-                    errorMessage += 'Please allow microphone access and refresh the page.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage += 'No microphone found on this device.';
-                } else if (error.name === 'NotReadableError') {
-                    errorMessage += 'Microphone is being used by another application.';
-                } else {
-                    errorMessage += error.message;
-                }
-                
-                showStatus(errorMessage + ' Use the upload option instead.', 'error');
-                recordButton.disabled = true;
-            }
-        }
-
-        // Show status messages
-        function showStatus(message, type = 'success') {
-            const statusDiv = document.getElementById('recordingStatus');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-            
-            if (type === 'success') {
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 3000);
-            }
-        }
-
-        // Show processing status
-        function showProcessingStatus(message, showLoading = false) {
-            const statusDiv = document.getElementById('processingStatus');
-            statusDiv.innerHTML = showLoading ? 
-                `<div class="loading"></div> ${message}` : message;
-            statusDiv.className = 'status success';
-            statusDiv.style.display = 'block';
-        }
-
-        function hideProcessingStatus() {
-            document.getElementById('processingStatus').style.display = 'none';
-        }
-
-        // Upload audio to server with real-time progress tracking
-        async function uploadAudio(audioBlob, filename) {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, filename);
-            
-            // Get selected language
-            const languageSelect = document.getElementById('languageSelect');
-            const selectedLanguage = languageSelect.value;
-            if (selectedLanguage && selectedLanguage !== 'auto') {
-                formData.append('language', selectedLanguage);
-            }
-            
-            // Get selected transcription method
-            const transcriptionMethodSelect = document.getElementById('transcriptionMethodSelect');
-            const selectedMethod = transcriptionMethodSelect.value;
-            formData.append('transcription_method', selectedMethod);
-            
-            // Prevent device sleep during processing
-            preventSleep();
-            
-            showProcessingStatus(`Starting ${getMethodName(selectedMethod)} with language: ${getLanguageName(selectedLanguage)}...`, true);
-            
-            try {
-                const response = await fetch(`${API_BASE}/upload`, {
+            fetch('/summarize', {
                     method: 'POST',
-                    body: formData
-                });
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transcription: currentTranscription,
+                    transcription_id: currentTranscriptionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('summarizeBtn').disabled = false;
                 
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                
-                // Join the session for progress updates
-                if (data.session_id && socket) {
-                    currentSessionId = data.session_id;
-                    socket.emit('join_session', { session_id: data.session_id });
-                }
-                
-                hideProcessingStatus();
-                
-                if (data.error) {
-                    allowSleep(); // Allow sleep on error
-                    alert('❌ Processing Error: ' + data.error);
-                } else if (data.transcription_ready) {
-                    // Transcription is ready immediately!
-                    const transcriptionMsg = `✅ Transcription Completed!\n\n` +
-                        `📄 Download: Click "Download Full Transcription" button\n` +
-                        `🔄 Summary: Being generated in background...\n\n` +
-                        `Preview: ${data.transcription}`;
+                if (data.success) {
+                    showStatus('✅ SUCCESS: MOM summary generated!', 'success');
                     
-                    alert(transcriptionMsg);
+                    document.getElementById('summary').textContent = data.summary;
+                    document.getElementById('summarySection').style.display = 'block';
                     
-                    // Refresh summaries to show the new transcription
-                    fetchSummaries();
+                    if (data.download_url) {
+                        document.getElementById('downloadSummaryBtn').onclick = () => downloadFile(data.download_url);
+                    }
                     
-                    // Show download button prominently
-                    showTranscriptionReady(data.id, data.message);
-                    
-                    // Note: Sleep prevention continues until summary is complete
-                    // Summary completion will be handled by socket.on('summary_ready')
                 } else {
-                    // Fallback for old response format
-                    allowSleep();
-                    alert('✅ Processing Complete!\n\n' + (data.summary || 'Transcription available'));
-                    fetchSummaries();
+                    showStatus('❌ ERROR: ' + data.error, 'error');
                 }
-                
-            } catch (error) {
-                allowSleep(); // Allow sleep on error
-                hideProcessingStatus();
-                document.getElementById('progressContainer').style.display = 'none';
-                console.error('Upload error:', error);
-                alert('❌ Upload failed: ' + error.message + '\n\nPlease check your internet connection and server status.');
-            }
-        }
-        
-        // Show transcription ready notification
-        function showTranscriptionReady(transcriptionId, message) {
-            const statusDiv = document.getElementById('processingStatus');
-            statusDiv.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="margin-bottom: 15px;">
-                        <strong>📄 Transcription Ready!</strong><br>
-                        ${message}
-                    </div>
-                    <button class="download-btn" onclick="downloadTranscription(${transcriptionId})" 
-                            style="font-size: 16px; padding: 12px 24px; background: #27ae60; border: none; color: white; border-radius: 5px; cursor: pointer;">
-                        📄 Download Transcription Now
-                    </button>
-                    <div style="margin-top: 10px; font-size: 14px; color: #7f8c8d;">
-                        🔄 Summary being generated in background...
-                    </div>
-                </div>
-            `;
-            statusDiv.className = 'status success';
-            statusDiv.style.display = 'block';
-            
-            // Auto-hide after 30 seconds
-            setTimeout(() => {
-                hideProcessingStatus();
-            }, 30000);
-        }
-        
-        // Helper function to get language display name
-        function getLanguageName(code) {
-            const languages = {
-                'auto': 'Smart Detection (Tamil+English)',
-                'ta': 'Tamil/Mixed (தமிழ் + English)',
-                'en': 'Pure English Only'
-            };
-            return languages[code] || code;
-        }
-        
-        // Helper function to get transcription method display name
-        function getMethodName(code) {
-            const methods = {
-                'auto': 'Smart Auto Selection',
-                'openai_fast': 'OpenAI Fast Processing',
-                'local_free': 'Local Free Processing'
-            };
-            return methods[code] || code;
+            })
+            .catch(error => {
+                document.getElementById('summarizeBtn').disabled = false;
+                console.error('Error:', error);
+                showStatus('❌ NETWORK ERROR: ' + error.message, 'error');
+            });
         }
 
-        // Record button event
-        document.getElementById('recordButton').addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state === 'inactive') {
-                audioChunks = []; // Clear previous chunks
-                mediaRecorder.start(1000); // Collect data every second
-                
-                document.getElementById('recordButton').disabled = true;
-                document.getElementById('stopButton').disabled = false;
-                
-                showStatus('🔴 Recording in progress... Click "Stop Recording" when finished.', 'recording');
-                console.log('Recording started');
-            } else {
-                alert('❌ Recording not initialized. Please refresh the page and allow microphone access.');
-            }
-        });
+        function downloadFile(url) {
+            window.open(url, '_blank');
+        }
 
-        // Stop button event
-        document.getElementById('stopButton').addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                
-                // Stop all tracks to release microphone
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-                
-                document.getElementById('recordButton').disabled = false;
-                document.getElementById('stopButton').disabled = true;
-                
-                showStatus('Recording stopped. Processing...', 'success');
-                console.log('Recording stopped');
-            }
-        });
-
-        // Upload button event
-        document.getElementById('uploadButton').addEventListener('click', () => {
-            const fileInput = document.getElementById('uploadInput');
-            const file = fileInput.files[0];
-            
-            if (file) {
-                // Check file size (limit to 25MB)
-                if (file.size > 25 * 1024 * 1024) {
-                    alert('❌ File too large. Please select a file smaller than 25MB.');
+        function loadHistory() {
+            fetch('/history')
+                .then(response => response.json())
+                .then(data => {
+                    const historyList = document.getElementById('historyList');
+                    
+                    if (data.length === 0) {
+                        historyList.innerHTML = '<div>No processing history found.</div>';
                     return;
                 }
                 
-                uploadAudio(file, file.name);
-                fileInput.value = ''; // Clear the input
-            } else {
-                alert('📁 Please select an audio file to upload.');
-            }
-        });
-
-        // Fetch and display summaries
-        async function fetchSummaries() {
-            try {
-                const response = await fetch(`${API_BASE}/summaries`);
-                
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                
-                const summaries = await response.json();
-                const list = document.getElementById('summaryList');
-                list.innerHTML = '';
-                
-                if (summaries.length > 0 && summaries[0].summary) {
-                    summaries.forEach((summary, index) => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `
-                            <strong>Summary #${summaries.length - index}:</strong><br>
-                            ${summary.summary}
-                            ${summary.tag ? `<br><em>Tag: ${summary.tag}</em>` : ''}
-                            <br><br>
-                            <button class="download-btn" onclick="downloadTranscription(${summary.id})">
-                                📄 Download Full Transcription
-                            </button>
-                            <small style="color: #7f8c8d; margin-left: 10px;">
-                                Created: ${new Date(summary.created_at).toLocaleString()}
-                            </small>
+                    let html = '';
+                    data.forEach(item => {
+                        const date = new Date(item.created_at).toLocaleString();
+                        const size = (item.file_size / 1024).toFixed(1);
+                        
+                        html += `
+                            <div class="history-item">
+                                <div class="history-meta">
+                                    ID: ${item.id} | ${date} | ${size}KB | ${item.filename}
+                                </div>
+                                <div class="action-buttons">
+                                    <button class="btn btn-secondary" onclick="downloadFile('${item.transcription_url}')">
+                                        📄 TRANSCRIPTION
+                                    </button>
+                                    ${item.has_summary ? 
+                                        `<button class="btn btn-secondary" onclick="downloadFile('${item.summary_url}')">📋 SUMMARY</button>` : 
+                                        '<span style="color: #666;">No summary generated</span>'
+                                    }
+                                </div>
+                            </div>
                         `;
-                        list.appendChild(li);
                     });
-                } else {
-                    const li = document.createElement('li');
-                    li.textContent = 'No summaries available yet. Record or upload an audio file to get started!';
-                    list.appendChild(li);
-                }
-                
-            } catch (error) {
-                console.error('Error fetching summaries:', error);
-                const list = document.getElementById('summaryList');
-                list.innerHTML = '<li style="color: red;">❌ Error loading summaries. Please check your connection.</li>';
-            }
-        }
-        
-        // Download transcription function
-        function downloadTranscription(summaryId) {
-            const downloadUrl = `${API_BASE}/download/${summaryId}`;
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = `transcription_${summaryId}.txt`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Initialize everything when page loads
-        window.addEventListener('load', () => {
-            console.log('Page loaded, initializing...');
-            initSocket();
-            initRecorder();
-            fetchSummaries();
-        });
-
-        // Handle page visibility changes to re-initialize if needed
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && (!mediaRecorder || mediaRecorder.state === 'inactive')) {
-                // Re-initialize when page becomes visible if recorder is not active
-                setTimeout(initRecorder, 1000);
-            }
-        });
-
-        // Prevent device sleep during processing
-        let wakeLock = null;
-        
-        async function preventSleep() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake lock activated to prevent sleep during processing');
-                } else {
-                    console.log('Wake Lock API not supported');
-                }
-            } catch (err) {
-                console.error('Failed to activate wake lock:', err);
-            }
-        }
-        
-        function allowSleep() {
-            if (wakeLock) {
-                wakeLock.release().then(() => {
-                    wakeLock = null;
-                    console.log('Wake lock released, device can sleep');
+                    
+                    historyList.innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('historyList').innerHTML = '<div class="status error">Error loading history: ' + error.message + '</div>';
                 });
-            }
         }
+
+        function loadSystemInfo() {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    const info = `
+SYSTEM STATUS: ${data.status}
+OpenAI API: ${data.openai_configured ? 'CONFIGURED' : 'NOT CONFIGURED'}
+Service: ${data.service}
+Total Transcriptions: ${data.total_transcriptions}
+Features: ${data.features ? data.features.join(', ') : 'N/A'}
+
+ENDPOINTS:
+- POST /upload        : Audio upload & transcription
+- POST /summarize     : Generate MOM summary
+- GET  /history       : View processing history
+- GET  /download/...  : Download results
+- GET  /health        : System status
+
+ENHANCEMENTS:
+✓ Speaker identification (Person1, Person2, etc.)
+✓ Auto-cleanup (uploaded files deleted after processing)
+✓ Download history with persistent storage
+✓ Enhanced MOM format with speaker attribution
+✓ Terminal-style dark UI
+✓ English/Tamil language optimization
+✓ Multilingual conversation support
+✓ Enhanced quality detection for Tamil content
+                    `;
+                    
+                    document.getElementById('systemInfo').textContent = info;
+                })
+                .catch(error => {
+                    document.getElementById('systemInfo').textContent = 'Error loading system info: ' + error.message;
+                });
+        }
+
+        // Event listeners
+        document.getElementById('summarizeBtn').addEventListener('click', generateSummary);
+
+        // Initialize
+        function init() {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    const statusEl = document.getElementById('systemStatus');
+                    if (data.status === 'healthy') {
+                        statusEl.textContent = `STATUS: ONLINE | OpenAI: ${data.openai_configured ? 'OK' : 'NOT CONFIGURED'}`;
+                        statusEl.style.color = '#00ff00';
+                } else {
+                        statusEl.textContent = 'STATUS: ERROR';
+                        statusEl.style.color = '#ff0000';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('systemStatus').textContent = 'STATUS: CONNECTION FAILED';
+                    document.getElementById('systemStatus').style.color = '#ff0000';
+                });
+        }
+
+        // Start the app
+        init();
     </script>
 </body>
 </html> 

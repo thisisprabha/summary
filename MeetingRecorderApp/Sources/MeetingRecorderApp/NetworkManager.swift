@@ -32,7 +32,7 @@ class NetworkManager: ObservableObject {
     
     // MARK: - Audio Upload
     
-    func uploadAudio(fileURL: URL) async -> Result<String, Error> {
+    func uploadAudio(fileURL: URL) async -> Result<UploadResponse, Error> {
         guard let uploadURL = URL(string: "\(serverURL)/upload") else {
             return .failure(NetworkError.invalidURL)
         }
@@ -58,20 +58,11 @@ class NetworkManager: ObservableObject {
             
             let result = try JSONDecoder().decode(UploadResponse.self, from: data)
             
-            if result.error != nil {
-                return .failure(NetworkError.serverError)
+            if let error = result.error {
+                return .failure(NetworkError.customError(error))
             }
             
-            // WebSocket functionality temporarily disabled
-            /*
-            // Start WebSocket connection for progress updates
-            if let sessionId = result.sessionId {
-                currentSessionId = sessionId
-                connectWebSocket(sessionId: sessionId)
-            }
-            */
-            
-            return .success(result.summary ?? "Processing...")
+            return .success(result)
             
         } catch {
             return .failure(error)
@@ -136,22 +127,22 @@ class NetworkManager: ObservableObject {
     
     // MARK: - Recent Summaries
     
-    func fetchRecentSummaries() async -> Result<[Summary], Error> {
-        guard let summariesURL = URL(string: "\(serverURL)/summaries") else {
+    func fetchRecentSummaries() async -> Result<[TranscriptionHistory], Error> {
+        guard let historyURL = URL(string: "\(serverURL)/history") else {
             return .failure(NetworkError.invalidURL)
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: summariesURL)
-            let summaries = try JSONDecoder().decode([Summary].self, from: data)
-            return .success(summaries)
+            let (data, _) = try await URLSession.shared.data(from: historyURL)
+            let history = try JSONDecoder().decode([TranscriptionHistory].self, from: data)
+            return .success(history)
         } catch {
             return .failure(error)
         }
     }
     
-    func downloadTranscription(summaryId: Int) async -> Result<String, Error> {
-        guard let downloadURL = URL(string: "\(serverURL)/download/\(summaryId)") else {
+    func downloadTranscription(transcriptionId: Int) async -> Result<String, Error> {
+        guard let downloadURL = URL(string: "\(serverURL)/download/transcription/\(transcriptionId)") else {
             return .failure(NetworkError.invalidURL)
         }
         
@@ -159,6 +150,59 @@ class NetworkManager: ObservableObject {
             let (data, _) = try await URLSession.shared.data(from: downloadURL)
             let transcription = String(data: data, encoding: .utf8) ?? ""
             return .success(transcription)
+        } catch {
+            return .failure(error)
+        }
+    }
+    
+    func downloadSummary(transcriptionId: Int) async -> Result<String, Error> {
+        guard let downloadURL = URL(string: "\(serverURL)/download/summary/\(transcriptionId)") else {
+            return .failure(NetworkError.invalidURL)
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: downloadURL)
+            let summary = String(data: data, encoding: .utf8) ?? ""
+            return .success(summary)
+        } catch {
+            return .failure(error)
+        }
+    }
+    
+    // MARK: - Generate Summary
+    
+    func generateSummary(transcription: String, transcriptionId: Int) async -> Result<String, Error> {
+        guard let summaryURL = URL(string: "\(serverURL)/summarize") else {
+            return .failure(NetworkError.invalidURL)
+        }
+        
+        do {
+            var request = URLRequest(url: summaryURL)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            let body = [
+                "transcription": transcription,
+                "transcription_id": transcriptionId
+            ] as [String : Any]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return .failure(NetworkError.serverError)
+            }
+            
+            let result = try JSONDecoder().decode(SummaryResponse.self, from: data)
+            
+            if let error = result.error {
+                return .failure(NetworkError.customError(error))
+            }
+            
+            return .success(result.summary ?? "Summary generated")
+            
         } catch {
             return .failure(error)
         }
@@ -217,18 +261,71 @@ extension NetworkManager: WebSocketDelegate {
 // MARK: - Data Models
 
 struct UploadResponse: Codable {
-    let id: Int?
-    let summary: String?
+    let success: Bool
     let transcription: String?
-    let sessionId: String?
+    let filename: String?
+    let transcriptionId: Int?
+    let downloadUrl: String?
+    let analysis: LanguageAnalysis?
     let error: String?
     
     enum CodingKeys: String, CodingKey {
-        case id, summary, transcription, error
-        case sessionId = "session_id"
+        case success, transcription, filename, analysis, error
+        case transcriptionId = "transcription_id"
+        case downloadUrl = "download_url"
     }
 }
 
+struct SummaryResponse: Codable {
+    let success: Bool
+    let summary: String?
+    let downloadUrl: String?
+    let error: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case success, summary, error
+        case downloadUrl = "download_url"
+    }
+}
+
+struct LanguageAnalysis: Codable {
+    let language: String
+    let quality: String
+    let totalWords: Int
+    let uniqueWords: Int
+    let repetitionRatio: Double
+    let tamilWordsDetected: Int?
+    let englishWordsDetected: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case language, quality, repetitionRatio
+        case totalWords = "total_words"
+        case uniqueWords = "unique_words"
+        case tamilWordsDetected = "tamil_words_detected"
+        case englishWordsDetected = "english_words_detected"
+    }
+}
+
+struct TranscriptionHistory: Codable, Identifiable {
+    let id: Int
+    let filename: String
+    let createdAt: String
+    let fileSize: Int
+    let hasSummary: Bool
+    let transcriptionUrl: String
+    let summaryUrl: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, filename
+        case createdAt = "created_at"
+        case fileSize = "file_size"
+        case hasSummary = "has_summary"
+        case transcriptionUrl = "transcription_url"
+        case summaryUrl = "summary_url"
+    }
+}
+
+// Legacy models - kept for compatibility
 struct Summary: Codable, Identifiable {
     let id: Int
     let summary: String
@@ -270,6 +367,7 @@ enum NetworkError: Error, LocalizedError {
     case invalidURL
     case serverError
     case noData
+    case customError(String)
     
     var errorDescription: String? {
         switch self {
@@ -279,6 +377,8 @@ enum NetworkError: Error, LocalizedError {
             return "Server error occurred"
         case .noData:
             return "No data received"
+        case .customError(let message):
+            return message
         }
     }
 } 

@@ -1,0 +1,12 @@
+version: "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)"
+options: "c13b06010b96c97c42944eda8c4ca42b7bfec4aa80a558ce72bbb08e8f892a56"
+build_start_time: [1751426442, 377640000]
+build_end_time: [1751426449, 941549000]
+inputs:
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AppDelegate.swift": [1751377957, 999369321]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/AudioManager.swift": [1751426240, 795766361]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/MenuBarManager.swift": [1751369966, 879197084]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/NetworkManager.swift": [1751426360, 71438182]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SettingsView.swift": [1751370008, 77898537]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/SummariesWindow.swift": [1751426340, 688573495]
+  "/Users/prabhakaran/Documents/Summary/MeetingRecorderApp/Sources/MeetingRecorderApp/main.swift": [1751370081, 462850291]

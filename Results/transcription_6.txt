@@ -1,0 +1,25 @@
+Person2: Hello people, what are you doing.
+
+Person1: What I am going to do now is, I am going to record the audio, transcribe it and then I am going to show it to you.
+
+Person2: This is what is going to happen.
+
+Person1: I am speaking in Tamil now.
+
+Person1: Suddenly I switched to English.
+
+Person2: Now I can speak in English for a while.
+
+Person1: I am not sure what to speak.
+
+Person2: Right now I am eating a dosa with chutney.
+
+Person2: I am in home with my baby.
+
+Person2: My baby is saying it is a spicy dosa.
+
+Person2: I am eating a dosa.
+
+Person2: I am reading the news.
+
+Person2: I am Narayana Raman.

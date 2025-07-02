@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'AllExcludingTests' in project 'Aggregate'
+➜ Explicit dependency on target 'MeetingRecorderApp_-666F13CEE8BCBCCE_PackageProduct' in project 'MeetingRecorderApp'
+Target 'MeetingRecorderApp_-666F13CEE8BCBCCE_PackageProduct' in project 'MeetingRecorderApp' (no dependencies)

@@ -1,0 +1,9 @@
+Person2: Hello, hello, hello.
+
+Person1: What I am testing now is uploading an audio and sending it to my Pi and transcribing it and transcribing it to OpenAPI and summarizing it.
+
+Person2: One of the fallbacks is if there is no OpenAPI key it has to be summarized in T5 Small Summarization and updated in my interface.
+
+Person1: This is what I am trying.
+
+Person1: Let's see the result.

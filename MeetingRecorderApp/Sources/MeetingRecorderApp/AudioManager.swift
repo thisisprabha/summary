@@ -103,11 +103,32 @@ class AudioManager: ObservableObject {
                     self.onProcessingStateChanged?(false)
                     
                     switch result {
-                    case .success(let summary):
-                        self.onSummaryReceived?(summary)
+                    case .success(let uploadResponse):
+                        // Show transcription preview with language info
+                        var message = "Transcription complete!"
+                        
+                        if let analysis = uploadResponse.analysis {
+                            message += " Language: \(analysis.language)"
+                            if let tamil = analysis.tamilWordsDetected, tamil > 0 {
+                                message += " (Tamil: \(tamil) words)"
+                            }
+                            if let english = analysis.englishWordsDetected, english > 0 {
+                                message += " (English: \(english) words)"
+                            }
+                        }
+                        
+                        // Use transcription preview as summary for now
+                        let transcriptionPreview = uploadResponse.transcription?.prefix(200) ?? "Transcription processed"
+                        self.onSummaryReceived?(String(transcriptionPreview))
+                        
+                        // Optionally generate full summary
+                        if let transcription = uploadResponse.transcription,
+                           let transcriptionId = uploadResponse.transcriptionId {
+                            self.generateSummary(transcription: transcription, transcriptionId: transcriptionId)
+                        }
+                        
                     case .failure(let error):
                         print("Upload failed: \(error)")
-                        // Show error notification
                         self.showErrorNotification(error.localizedDescription)
                     }
                 }
@@ -115,6 +136,23 @@ class AudioManager: ObservableObject {
                 // Clean up temporary file
                 try? FileManager.default.removeItem(at: url)
                 
+            }
+        }
+    }
+    
+    private func generateSummary(transcription: String, transcriptionId: Int) {
+        Task {
+            let result = await networkManager.generateSummary(transcription: transcription, transcriptionId: transcriptionId)
+            
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let summary):
+                    // Update with full summary
+                    self.onSummaryReceived?(summary)
+                case .failure(let error):
+                    print("Summary generation failed: \(error)")
+                    // Keep the transcription preview as fallback
+                }
             }
         }
     }
