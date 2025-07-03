@@ -1,0 +1,28 @@
+## Meeting Summary
+
+### Participants:
+- Person1
+- Person2
+
+### Key Discussion Points:
+- Person1 suggests creating a ticket from a private channel instead of a public one to avoid visibility issues.
+- Person2 expresses skepticism due to behavior changes in the public channel.
+
+### Important Updates & Announcements:
+- No updates or announcements were mentioned during the meeting.
+
+### Action Items / Next Steps:
+- Person1 to explore creating private channels for individual users to streamline communication.
+- Person2 to provide feedback on the proposed changes to address skepticism.
+
+### Decisions Made:
+- None
+
+### Questions & Concerns:
+- Person2 raised concerns about behavior changes in the public channel.
+
+### Language Notes:
+- Tamil content was not present in the transcription.
+
+---
+This MOM captures the key points discussed during the meeting, including the suggestion to create tickets from private channels and concerns about behavior changes in the public channel. Action items were assigned to explore private channel creation and provide feedback on proposed changes. No decisions were made during the meeting.

@@ -139,14 +139,20 @@ def upload_audio():
                 conn.commit()
                 conn.close()
                 
+                # Save transcription file for download
+                transcription_file = f"Results/transcription_{transcription_id}.txt"
+                with open(transcription_file, 'w', encoding='utf-8') as f:
+                    f.write(transcription)
+                
                 response = {
                     'success': True,
                     'transcription': transcription,
                     'transcription_id': transcription_id,
-                    'filename': safe_filename
+                    'filename': safe_filename,
+                    'download_url': f'/download/transcription/{transcription_id}'
                 }
-        
-    except Exception as e:
+                
+            except Exception as e:
                 logger.error(f"Transcription failed: {str(e)}")
                 raise e
 
@@ -291,7 +297,7 @@ def detect_language_and_quality(transcription):
         language = "Tamil"
     elif english_count > tamil_count * 1.5:  # Higher threshold for English
         language = "English"
-        else:
+    else:
         language = "Mixed English/Tamil"
     
     # Quality assessment
@@ -303,7 +309,7 @@ def detect_language_and_quality(transcription):
         quality = "Poor (High repetition)"
     elif repetition_ratio > 0.5:
         quality = "Fair (Some repetition)"
-                else:
+    else:
         quality = "Good"
     
     return {
@@ -400,7 +406,7 @@ Please format the response clearly, focus on actionable items and key decisions,
             'download_url': f'/download/summary/{transcription_id}' if transcription_id else None
         })
 
-                except Exception as e:
+    except Exception as e:
         logger.error(f"Error generating summary: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
@@ -413,7 +419,7 @@ def download_transcription(transcription_id):
             return send_file(transcription_file, as_attachment=True, download_name=f"transcription_{transcription_id}.txt")
         else:
             return jsonify({'error': 'Transcription file not found'}), 404
-                except Exception as e:
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/download/summary/<int:transcription_id>')
@@ -614,8 +620,7 @@ def translate_to_natural_english(tamil_text, client):
         )
         
         return response.choices[0].message.content.strip()
-                
-            except Exception as e:
+    except Exception as e:
         logger.error(f"Translation failed: {str(e)}")
         return None
 

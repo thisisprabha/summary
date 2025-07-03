@@ -1,0 +1,4 @@
+• I don't know if you can hear me Has it started?
+• Everything we speak will be recorded I can speak in Tamil I can speak in English I don't know if it will support Indian language I am using Whisper.
+• cpp So in all languages First I was using Raspberry Pi Pi is my server I should have moved this file there I still have it locally I moved it there I installed Whisper.
+• cpp locally I processed it locally Then I used a T5 Small Summarization Model I used that model It took 10-15 minutes Even half an hour For 2 minutes audio Pi 3 is very old Then I used API It is cheap It doesn't cost much But for summarization It requires a lot of tricks Thank you

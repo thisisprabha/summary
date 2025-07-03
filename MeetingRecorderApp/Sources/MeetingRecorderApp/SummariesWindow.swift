@@ -178,6 +178,22 @@ struct TranscriptionRowView: View {
                     }
                     .disabled(isDownloading)
                     .buttonStyle(.bordered)
+                } else {
+                    Button(action: {
+                        generateSummary()
+                    }) {
+                        HStack(spacing: 4) {
+                            if isDownloading {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            } else {
+                                Image(systemName: "doc.richtext.fill")
+                            }
+                            Text("Generate Summary")
+                        }
+                    }
+                    .disabled(isDownloading)
+                    .buttonStyle(.borderedProminent)
                 }
                 
                 Spacer()
@@ -219,6 +235,53 @@ struct TranscriptionRowView: View {
                     saveFile(content: content, filename: "summary_\(transcription.id).txt")
                 case .failure(let error):
                     showErrorAlert(error.localizedDescription)
+                }
+            }
+        }
+    }
+    
+    private func generateSummary() {
+        isDownloading = true
+        
+        Task {
+            // First, download the transcription
+            let transcriptionResult = await networkManager.downloadTranscription(transcriptionId: transcription.id)
+            
+            switch transcriptionResult {
+            case .success(let transcriptionText):
+                // Now generate the summary
+                let summaryResult = await networkManager.generateSummary(transcription: transcriptionText, transcriptionId: transcription.id)
+                
+                await MainActor.run {
+                    isDownloading = false
+                    
+                    switch summaryResult {
+                    case .success(let summary):
+                        // Save the summary file and show success
+                        saveFile(content: summary, filename: "summary_\(transcription.id).txt")
+                        
+                        // Show success notification
+                        let content = UNMutableNotificationContent()
+                        content.title = "Summary Generated"
+                        content.body = "Summary created for \(transcription.filename)"
+                        content.sound = UNNotificationSound.default
+                        
+                        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+                        UNUserNotificationCenter.current().add(request) { error in
+                            if let error = error {
+                                print("Failed to show notification: \(error)")
+                            }
+                        }
+                        
+                    case .failure(let error):
+                        showErrorAlert("Failed to generate summary: \(error.localizedDescription)")
+                    }
+                }
+                
+            case .failure(let error):
+                await MainActor.run {
+                    isDownloading = false
+                    showErrorAlert("Failed to download transcription: \(error.localizedDescription)")
                 }
             }
         }

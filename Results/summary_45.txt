@@ -1,0 +1,37 @@
+## Meeting Summary
+
+### Participants:
+- Person1
+- Person2
+- Person3
+- Person4
+
+### Key Discussion Points:
+- Clarification on the functionality of the selector tool for bulk selection and its behavior.
+- Discussion on the need for bulk actions like resolve and delete for alerts and assets.
+- Updates on enhancements related to unmanned assets and mobile implementation.
+- Introduction of a voice memo recording feature and its development progress.
+- Design updates for index card and call receive features.
+
+### Important Updates & Announcements:
+- Person3 is working on enhancements for unmanned assets and mobile implementation.
+- Person4 introduced a voice memo recording feature and is currently developing it.
+- Design updates have been made for the index card feature.
+
+### Action Items / Next Steps:
+- Person1 to ensure the selector tool functions correctly with bulk selection.
+- Person2 to work on implementing bulk resolve and delete actions for alerts and assets.
+- Person3 to continue development on enhancements for unmanned assets and mobile implementation.
+- Person4 to further develop the voice memo recording feature.
+- Design updates for the index card feature to be finalized by the next meeting.
+
+### Decisions Made:
+- The bulk selection tool will include options for resolve and delete actions for alerts and assets.
+
+### Questions & Concerns:
+- None noted.
+
+### Language Notes:
+- Tamil content was not identified in the provided transcription.
+
+By the next meeting, the team aims to finalize the design updates for the index card feature and continue development on the voice memo recording feature. The focus remains on ensuring the functionality of the selector tool for bulk actions and implementing bulk resolve and delete actions for alerts and assets.

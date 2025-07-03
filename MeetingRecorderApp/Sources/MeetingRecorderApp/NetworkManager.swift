@@ -128,42 +128,69 @@ class NetworkManager: ObservableObject {
     // MARK: - Recent Summaries
     
     func fetchRecentSummaries() async -> Result<[TranscriptionHistory], Error> {
-        guard let historyURL = URL(string: "\(serverURL)/history") else {
+        guard let url = URL(string: "\(serverURL)/history") else {
             return .failure(NetworkError.invalidURL)
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: historyURL)
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return .failure(NetworkError.serverError)
+            }
+            
             let history = try JSONDecoder().decode([TranscriptionHistory].self, from: data)
             return .success(history)
+            
         } catch {
             return .failure(error)
         }
     }
     
     func downloadTranscription(transcriptionId: Int) async -> Result<String, Error> {
-        guard let downloadURL = URL(string: "\(serverURL)/download/transcription/\(transcriptionId)") else {
+        guard let url = URL(string: "\(serverURL)/download/transcription/\(transcriptionId)") else {
             return .failure(NetworkError.invalidURL)
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: downloadURL)
-            let transcription = String(data: data, encoding: .utf8) ?? ""
-            return .success(transcription)
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return .failure(NetworkError.serverError)
+            }
+            
+            guard let content = String(data: data, encoding: .utf8) else {
+                return .failure(NetworkError.noData)
+            }
+            
+            return .success(content)
+            
         } catch {
             return .failure(error)
         }
     }
     
     func downloadSummary(transcriptionId: Int) async -> Result<String, Error> {
-        guard let downloadURL = URL(string: "\(serverURL)/download/summary/\(transcriptionId)") else {
+        guard let url = URL(string: "\(serverURL)/download/summary/\(transcriptionId)") else {
             return .failure(NetworkError.invalidURL)
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: downloadURL)
-            let summary = String(data: data, encoding: .utf8) ?? ""
-            return .success(summary)
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return .failure(NetworkError.serverError)
+            }
+            
+            guard let content = String(data: data, encoding: .utf8) else {
+                return .failure(NetworkError.noData)
+            }
+            
+            return .success(content)
+            
         } catch {
             return .failure(error)
         }

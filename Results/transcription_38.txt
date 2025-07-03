@@ -1,0 +1,7 @@
+• Hello, hello, hello.
+• This is Testing.
+• What I am testing right now is uploading an audio and sending it to my Pi and transcribing it to my Pi and giving it to OpenAPI and summarizing it.
+• There is a fallback in that.
+• If there is no OpenAPI key, it has to be summarized in T5 Smalls and updated in my interface.
+• This is what I am trying.
+• Let's see the result.

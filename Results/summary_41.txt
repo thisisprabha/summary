@@ -1,0 +1,30 @@
+## Minutes of Meeting
+
+**Date:** [Insert Date]
+
+**Participants:**
+- Person1
+- Person2
+
+**Key Discussion Points:**
+- Person1 initiated the meeting and confirmed if it had started.
+- Person2 mentioned that all conversations are being recorded and they can communicate in both Tamil and English. They discussed using Whisper for communication.
+- Person1 shared their process of using Raspberry Pi as a server, moving files, and installing Whisper. They mentioned using a T5 Small Summarization Model for processing locally and using an API for summarization.
+
+**Important Updates & Announcements:**
+- No specific updates or announcements were made during the meeting.
+
+**Action Items / Next Steps:**
+- Person1 to move the file to the Raspberry Pi server.
+- Person2 to explore more efficient summarization techniques to reduce processing time.
+
+**Decisions Made:**
+- It was decided to continue using Whisper for communication during the project.
+
+**Questions & Concerns:**
+- No questions or concerns were raised during the meeting.
+
+**Language Notes:**
+- Tamil was spoken during the meeting for discussing technical processes and tools.
+
+[End of Minutes]

@@ -1,0 +1,15 @@
+Person2: Hello guys, now I'm speaking in Tamil.
+
+Person1: I don't know how this will come.
+
+Person1: I'm just trying to open it.
+
+Person1: The result I expect is that it should be translated into Tamil.
+
+Person2: I have to summarize it and add it to the meeting notes.
+
+Person1: This is my concept.
+
+Person2: But I don't know how this will come.
+
+Person1: Since I'm speaking in English and Tamil at the same time, I don't know how to process it.

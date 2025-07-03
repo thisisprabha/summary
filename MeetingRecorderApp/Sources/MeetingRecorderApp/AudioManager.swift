@@ -187,11 +187,12 @@ class AudioManager: ObservableObject {
                         let transcriptionPreview = uploadResponse.transcription?.prefix(300) ?? "Transcription processed"
                         self.onSummaryReceived?(String(transcriptionPreview))
                         
+                        // Remove automatic summary generation - let user choose manually
                         // Optionally generate full summary
-                        if let transcription = uploadResponse.transcription,
-                           let transcriptionId = uploadResponse.transcriptionId {
-                            self.generateSummary(transcription: transcription, transcriptionId: transcriptionId)
-                        }
+                        // if let transcription = uploadResponse.transcription,
+                        //    let transcriptionId = uploadResponse.transcriptionId {
+                        //     self.generateSummary(transcription: transcription, transcriptionId: transcriptionId)
+                        // }
                         
                     case .failure(let error):
                         print("Upload failed: \(error)")

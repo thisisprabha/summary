@@ -1,0 +1,28 @@
+## Meeting Summary
+
+### Participants:
+- Person1
+- Person2
+
+### Key Discussion Points:
+- Person1 mentioned that they prefer speaking in Tamil during meetings.
+- Person1 explained their process of recording meeting discussions and providing summaries to the OAPI.
+- Person2 noted that today's discussions were captured in the Minutes of Meeting (MOM).
+
+### Important Updates & Announcements:
+- No specific updates or announcements were mentioned during the meeting.
+
+### Action Items / Next Steps:
+- Person1 to transcribe and summarize the meeting discussions for submission to the OAPI.
+
+### Decisions Made:
+- The decision was made to continue documenting meeting discussions and providing summaries to the OAPI.
+
+### Questions & Concerns:
+- No questions or concerns were raised during the meeting.
+
+### Language Notes:
+- Tamil was spoken during the meeting, with Person1 expressing a preference for using Tamil in discussions.
+
+---
+This MOM provides a summary of the meeting where discussions primarily focused on the process of recording and summarizing meeting discussions in Tamil. The key takeaway was the decision to continue this practice and submit the summaries to the OAPI. Person1 will be responsible for transcribing and summarizing the discussions for the next steps.
