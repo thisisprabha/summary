@@ -38,7 +38,7 @@ struct SummariesView: View {
                         Text("Loading history...")
                             .font(.headline)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let errorMessage = errorMessage {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle")
@@ -339,7 +339,11 @@ struct TranscriptionRowView: View {
         return dateString
     }
     
-    private func formatFileSize(_ size: Int) -> String {
+    private func formatFileSize(_ size: Int?) -> String {
+        guard let size = size else {
+            return "Unknown size"
+        }
+        
         let sizeInKB = Double(size) / 1024
         let sizeInMB = sizeInKB / 1024
         

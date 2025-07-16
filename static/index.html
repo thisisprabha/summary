@@ -145,7 +145,7 @@
             border-color: #ff0000;
             color: #ff0000;
         }
-
+        
         .status.processing {
             border-color: #ffff00;
             color: #ffff00;
@@ -238,6 +238,73 @@
             margin-top: 10px;
         }
 
+        .mode-controls {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mode-button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #666;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-button:hover {
+            background: #444;
+            border-color: #00ff00;
+        }
+
+        .mode-button.active {
+            background: #00ff00;
+            color: #000;
+            border-color: #00ff00;
+        }
+
+        .mode-status {
+            color: #00ffff;
+            font-size: 12px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.available {
+            background: #00ff00;
+        }
+
+        .status-dot.unavailable {
+            background: #ff0000;
+        }
+
         .tabs {
             display: flex;
             border-bottom: 1px solid #333;
@@ -270,7 +337,7 @@
             .terminal {
                 padding: 10px;
                 margin: 10px;
-            }
+        }
             
             .ascii-art {
                 font-size: 8px;
@@ -314,6 +381,28 @@
 
         <!-- Upload Tab -->
         <div id="upload-tab" class="tab-content active">
+            <!-- Transcription Mode Controls -->
+            <div class="mode-controls">
+                <div class="section-title">[ TRANSCRIPTION MODE ]</div>
+                <div class="mode-selector">
+                    <span style="color: #ffff00;">Mode:</span>
+                    <button class="mode-button" data-mode="hybrid">🔄 HYBRID</button>
+                    <button class="mode-button" data-mode="offline">🔒 OFFLINE</button>
+                    <button class="mode-button" data-mode="online">🌐 ONLINE</button>
+                </div>
+                <div class="mode-status">
+                    <div class="status-indicator">
+                        <span class="status-dot" id="offline-status"></span>
+                        <span>Offline Available</span>
+                    </div>
+                    <div class="status-indicator">
+                        <span class="status-dot" id="online-status"></span>
+                        <span>Online Available</span>
+                    </div>
+                    <div id="current-mode-display">Current: Loading...</div>
+                </div>
+            </div>
+
             <div class="section">
                 <div class="section-title">[ FILE UPLOAD MODULE ]</div>
                 <div class="upload-area" onclick="document.getElementById('audioFile').click()">
@@ -362,7 +451,7 @@
                 </div>
             </div>
         </div>
-
+            
         <!-- System Tab -->
         <div id="system-tab" class="tab-content">
             <div class="section">
@@ -377,6 +466,88 @@
         let currentTranscriptionId = null;
         let currentFilename = '';
 
+        // Transcription mode management
+        let currentMode = 'hybrid';
+
+        async function loadTranscriptionStatus() {
+            try {
+                const response = await fetch('/transcription-status');
+                const data = await response.json();
+                
+                currentMode = data.transcription_mode;
+                updateModeDisplay(data);
+            } catch (error) {
+                console.error('Failed to load transcription status:', error);
+                showStatus('⚠️ Failed to load transcription status', 'error');
+            }
+        }
+
+        function updateModeDisplay(statusData) {
+            // Update active button
+            document.querySelectorAll('.mode-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === currentMode) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update status indicators
+            const offlineStatus = document.getElementById('offline-status');
+            const onlineStatus = document.getElementById('online-status');
+            
+            offlineStatus.className = `status-dot ${statusData.offline_available ? 'available' : 'unavailable'}`;
+            onlineStatus.className = `status-dot ${statusData.online_available ? 'available' : 'unavailable'}`;
+
+            // Update current mode display
+            const modeDisplay = document.getElementById('current-mode-display');
+            const modeEmoji = currentMode === 'hybrid' ? '🔄' : 
+                             currentMode === 'offline' ? '🔒' : '🌐';
+            modeDisplay.textContent = `Current: ${modeEmoji} ${currentMode.toUpperCase()}`;
+        }
+
+        async function setTranscriptionMode(mode) {
+            try {
+                showStatus('<span class="spinner">⣷</span> SWITCHING MODE: Updating transcription mode...', 'processing');
+                
+                const response = await fetch('/set-transcription-mode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ mode: mode })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentMode = mode;
+                    updateModeDisplay(data);
+                    showStatus(`✅ MODE UPDATED: ${data.message}`, 'success');
+                } else {
+                    showStatus(`❌ ERROR: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to set transcription mode:', error);
+                showStatus('❌ ERROR: Failed to update transcription mode', 'error');
+            }
+        }
+
+        // Initialize mode controls
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load initial status
+            loadTranscriptionStatus();
+
+            // Add click handlers to mode buttons
+            document.querySelectorAll('.mode-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+                    if (mode !== currentMode) {
+                        setTranscriptionMode(mode);
+                    }
+                });
+            });
+        });
+
         // Tab switching
         function switchTab(tabName) {
             // Update tab buttons
@@ -386,7 +557,7 @@
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(tabName + '-tab').classList.add('active');
-            
+                
             // Load data for specific tabs
             if (tabName === 'history') {
                 loadHistory();
@@ -401,20 +572,20 @@
                 const file = e.target.files[0];
                 uploadFile(file);
             }
-        });
+            });
 
         function showStatus(message, type) {
             const status = document.getElementById('status');
             status.innerHTML = message;
             status.className = 'status ' + type;
             status.style.display = 'block';
-        }
+            }
 
         function uploadFile(file) {
             const formData = new FormData();
             formData.append('audio', file);
 
-            showStatus('<span class="spinner">⣷</span> PROCESSING: Uploading to OpenAI Whisper API...', 'processing');
+            showStatus('<span class="spinner">⣷</span> PROCESSING: Initializing transcription...', 'processing');
             document.getElementById('results').style.display = 'none';
             document.getElementById('summarySection').style.display = 'none';
             document.getElementById('uploadButton').disabled = true;
@@ -431,8 +602,12 @@
                     // Check for message format instead of speaker labels
                     const hasMessageFormat = data.transcription.includes('💬');
                     const displayMode = hasMessageFormat ? 'Message format' : 'Plain text';
+                    const transcriptionMode = data.transcription_mode || 'unknown';
+                    const modeDisplay = transcriptionMode === 'offline' ? '🔒 OFFLINE' : 
+                                       transcriptionMode === 'online' ? '🌐 ONLINE' : 
+                                       '🔄 HYBRID';
                     
-                    showStatus(`✅ SUCCESS: Transcription completed! ${displayMode} applied.`, 'success');
+                    showStatus(`✅ SUCCESS: Transcription completed via ${modeDisplay} mode! ${displayMode} applied.`, 'success');
                     
                     // Store data
                     currentTranscription = data.transcription;
@@ -446,7 +621,7 @@
                     // Enable buttons
                     document.getElementById('summarizeBtn').disabled = false;
                     document.getElementById('downloadTranscriptionBtn').onclick = () => downloadFile(data.download_url);
-                    
+                
                     // Enhanced cost info with detailed analysis
                     const fileSizeMB = file.size / (1024 * 1024);
                     const estimatedCost = (fileSizeMB * 0.006).toFixed(3);
@@ -466,7 +641,7 @@
                     
                 } else {
                     showStatus('❌ ERROR: ' + data.error, 'error');
-                }
+            }
             })
             .catch(error => {
                 document.getElementById('uploadButton').disabled = false;
@@ -613,13 +788,13 @@ ENHANCEMENTS:
                 } else {
                         statusEl.textContent = 'STATUS: ERROR';
                         statusEl.style.color = '#ff0000';
-                    }
+                }
                 })
                 .catch(error => {
                     document.getElementById('systemStatus').textContent = 'STATUS: CONNECTION FAILED';
                     document.getElementById('systemStatus').style.color = '#ff0000';
                 });
-        }
+            }
 
         // Start the app
         init();

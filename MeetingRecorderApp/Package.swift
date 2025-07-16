@@ -7,7 +7,7 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(
+        .library(
             name: "MeetingRecorderApp",
             targets: ["MeetingRecorderApp"]
         ),
@@ -18,7 +18,7 @@ let package = Package(
         // .package(url: "https://github.com/daltoniam/Starscream.git", from: "4.0.0"),
     ],
     targets: [
-        .executableTarget(
+        .target(
             name: "MeetingRecorderApp",
             dependencies: [
                 // Dependencies temporarily removed

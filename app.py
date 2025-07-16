@@ -8,6 +8,9 @@ import json
 import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
+import re
+import subprocess
+import shutil
 
 # Load environment variables
 load_dotenv()
@@ -18,15 +21,177 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
+# Configuration for transcription modes
+TRANSCRIPTION_MODE = os.getenv('TRANSCRIPTION_MODE', 'hybrid')  # 'online', 'offline', 'hybrid'
+WHISPER_CPP_PATH = os.getenv('WHISPER_CPP_PATH', './whisper.cpp/build/bin/whisper-cli')
+WHISPER_MODEL_PATH = os.getenv('WHISPER_MODEL_PATH', './whisper.cpp/models/ggml-base.bin')
+
 # Initialize OpenAI client lazily
-_client = None
+_openai_client = None
 
 def get_openai_client():
-    global _client
-    if _client is None:
+    global _openai_client
+    if _openai_client is None:
         from openai import OpenAI
-        _client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-    return _client
+        _openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    return _openai_client
+
+def check_offline_availability():
+    """Check if offline transcription is available"""
+    try:
+        return (os.path.exists(WHISPER_CPP_PATH) and 
+                os.path.exists(WHISPER_MODEL_PATH) and
+                os.access(WHISPER_CPP_PATH, os.X_OK))
+    except Exception:
+        return False
+
+def check_online_availability():
+    """Check if online transcription is available"""
+    return bool(os.getenv('OPENAI_API_KEY'))
+
+def transcribe_offline(audio_file_path, language="en"):
+    """Transcribe audio using local whisper.cpp"""
+    try:
+        logger.info(f"OFFLINE MODE: Using local whisper.cpp for transcription")
+        
+        # Check if audio format conversion is needed
+        supported_formats = ['.flac', '.mp3', '.ogg', '.wav']
+        file_ext = os.path.splitext(audio_file_path)[1].lower()
+        
+        working_file = audio_file_path
+        converted_file = None
+        
+        if file_ext not in supported_formats:
+            logger.info(f"Converting {file_ext} to WAV format for whisper.cpp compatibility")
+            try:
+                # Convert to WAV using ffmpeg if available
+                converted_file = audio_file_path + '.wav'
+                result = subprocess.run([
+                    'ffmpeg', '-i', audio_file_path, '-ar', '16000', '-ac', '1', '-y', converted_file
+                ], capture_output=True, text=True, timeout=60)
+                
+                if result.returncode == 0:
+                    working_file = converted_file
+                    logger.info(f"Successfully converted to WAV: {working_file}")
+                else:
+                    logger.warning(f"Format conversion failed: {result.stderr}")
+                    raise Exception(f"Unsupported format {file_ext} and conversion failed")
+                    
+            except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                logger.warning(f"ffmpeg not available or conversion failed: {str(e)}")
+                raise Exception(f"Unsupported format {file_ext} and no ffmpeg available for conversion")
+        
+        # Prepare whisper-cli command (updated syntax)
+        cmd = [
+            WHISPER_CPP_PATH,
+            '-m', WHISPER_MODEL_PATH,
+            '-f', working_file,
+            '-l', language,
+            '-t', '4',  # Use 4 threads
+            '--output-txt',  # Output text format
+            '--no-prints'    # Suppress verbose output
+        ]
+        
+        logger.info(f"Running whisper-cli: {' '.join(cmd)}")
+        
+        # Run whisper-cli
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            raise Exception(f"Whisper-cli failed: {result.stderr}")
+        
+        # Read the output text file
+        output_txt = working_file + '.txt'
+        if os.path.exists(output_txt):
+            with open(output_txt, 'r', encoding='utf-8') as f:
+                transcription = f.read().strip()
+            
+            # Clean up the output file
+            os.remove(output_txt)
+            
+            # Clean up converted file if it was created
+            if converted_file and os.path.exists(converted_file):
+                os.remove(converted_file)
+            
+            logger.info(f"Offline transcription completed: {transcription[:100]}...")
+            return transcription
+        else:
+            raise Exception("Whisper-cli output file not found")
+            
+    except subprocess.TimeoutExpired:
+        # Clean up converted file if it exists
+        if converted_file and os.path.exists(converted_file):
+            os.remove(converted_file)
+        raise Exception("Offline transcription timed out")
+    except Exception as e:
+        # Clean up converted file if it exists
+        if converted_file and os.path.exists(converted_file):
+            os.remove(converted_file)
+        logger.error(f"Offline transcription failed: {str(e)}")
+        raise
+
+def transcribe_online(audio_file_path, language="en"):
+    """Transcribe audio using OpenAI Whisper API"""
+    try:
+        logger.info("ONLINE MODE: Using OpenAI Whisper API for transcription")
+        
+        client = get_openai_client()
+        with open(audio_file_path, 'rb') as audio_file:
+            logger.info("ENGLISH-DIRECT TRANSCRIPTION: Using English model for Tamil-English mixed speech")
+            
+            transcription_response = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                language=language,
+                prompt="Mixed conversation with Tamil and English words",
+                response_format="text"
+            )
+            
+            transcription = transcription_response.strip()
+            logger.info(f"Online transcription completed: {transcription[:100]}...")
+            return transcription
+            
+    except Exception as e:
+        logger.error(f"Online transcription failed: {str(e)}")
+        raise
+
+def transcribe_audio(audio_file_path, language="en"):
+    """Main transcription function with mode selection and fallback"""
+    offline_available = check_offline_availability()
+    online_available = check_online_availability()
+    
+    logger.info(f"Transcription mode: {TRANSCRIPTION_MODE}")
+    logger.info(f"Offline available: {offline_available}, Online available: {online_available}")
+    
+    if TRANSCRIPTION_MODE == 'offline':
+        if not offline_available:
+            raise Exception("Offline mode requested but whisper.cpp not available")
+        return transcribe_offline(audio_file_path, language), "offline"
+        
+    elif TRANSCRIPTION_MODE == 'online':
+        if not online_available:
+            raise Exception("Online mode requested but OpenAI API key not available")
+        return transcribe_online(audio_file_path, language), "online"
+        
+    elif TRANSCRIPTION_MODE == 'hybrid':
+        # Try offline first, fallback to online
+        if offline_available:
+            try:
+                return transcribe_offline(audio_file_path, language), "offline"
+            except Exception as e:
+                logger.warning(f"Offline transcription failed, trying online: {str(e)}")
+                
+        if online_available:
+            try:
+                return transcribe_online(audio_file_path, language), "online"
+            except Exception as e:
+                logger.error(f"Online transcription also failed: {str(e)}")
+                raise Exception("Both offline and online transcription failed")
+        else:
+            raise Exception("No transcription method available")
+    
+    else:
+        raise Exception(f"Invalid transcription mode: {TRANSCRIPTION_MODE}")
 
 # Database setup for saving results
 def init_db():
@@ -41,6 +206,45 @@ def init_db():
                   file_size INTEGER)''')
     conn.commit()
     return conn
+
+def clean_transcription_artifacts(transcription):
+    """Remove transcription artifacts and repetitive content"""
+    if not transcription:
+        return transcription
+    
+    # Split into lines
+    lines = transcription.split('\n')
+    cleaned_lines = []
+    seen_lines = set()
+    
+    for line in lines:
+        # Clean up each line
+        line = line.strip()
+        
+        # Remove excessive trailing punctuation (3+ dots to single dot)
+        line = re.sub(r'\.{3,}', '.', line)
+        line = re.sub(r'[.!?]{2,}', '.', line)
+        
+        # Skip very short fragments (less than 3 characters)
+        if len(line) < 3:
+            continue
+            
+        # Skip standalone punctuation lines
+        if re.match(r'^[.!?•\-\s]*$', line):
+            continue
+        
+        # Remove consecutive duplicate lines
+        if line not in seen_lines:
+            cleaned_lines.append(line)
+            seen_lines.add(line)
+    
+    # Join back and ensure proper sentence endings
+    result = '\n'.join(cleaned_lines)
+    
+    # Fix sentence endings
+    result = re.sub(r'([^.!?])\s*$', r'\1.', result)
+    
+    return result
 
 # Ensure directories exist
 os.makedirs('Uploads', exist_ok=True)
@@ -60,101 +264,77 @@ def upload_audio():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
 
-        # Check if OpenAI API key is configured
-        if not os.getenv('OPENAI_API_KEY'):
-            return jsonify({'error': 'OpenAI API key not configured'}), 500
+        # Check if any transcription method is available
+        offline_available = check_offline_availability()
+        online_available = check_online_availability()
+        
+        if not offline_available and not online_available:
+            return jsonify({'error': 'No transcription method available. Need either OpenAI API key or whisper.cpp setup.'}), 500
 
         # Save uploaded file temporarily
         filename = secure_filename(file.filename)
         timestamp = str(int(time.time()))
         safe_filename = f"{timestamp}_{filename}"
         
-        # Save to uploads directory temporarily
         upload_path = os.path.join('Uploads', safe_filename)
         file.save(upload_path)
         file_size = os.path.getsize(upload_path)
 
-        # Create temporary file for OpenAI API
+        # Create temporary file for transcription
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
-            file.seek(0)  # Reset file pointer
+            file.seek(0)
             temp_file.write(file.read())
             temp_file_path = temp_file.name
 
         logger.info(f"Processing audio file: {filename} ({file_size} bytes)")
 
-        # Get OpenAI client and transcribe with simple, clean approach
-        client = get_openai_client()
-        with open(temp_file_path, 'rb') as audio_file:
-            try:
-                logger.info("ENGLISH-DIRECT TRANSCRIPTION: Using English model for Tamil-English mixed speech")
-                
-                # Research-based approach: English language setting works better for Tamil-English code-switching
-                transcription_response = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file,
-                    language="en",  # Force English - research shows this works better for Tamil-English mixed content
-                    prompt="Mixed conversation with Tamil and English words",  # Simple context
-                    response_format="text"
-                )
-                
-                transcription = transcription_response.strip()
-                logger.info(f"Direct English transcription: {transcription[:100]}...")
-                
-                logger.info("Direct transcription completed successfully")
+        # Use the new transcription function
+        transcription, used_mode = transcribe_audio(temp_file_path, "en")
+        logger.info(f"Transcription completed using {used_mode} mode: {transcription[:100]}...")
 
-                # Simple message formatting (clean bullet points)
-                if transcription and len(transcription.strip()) > 0:
-                    # Split into sentences and add simple formatting
-                    sentences = []
-                    current_sentence = ""
-                    
-                    for char in transcription:
-                        current_sentence += char
-                        if char in '.!?' or (char == '\n' and current_sentence.strip()):
-                            if current_sentence.strip():
-                                sentences.append(current_sentence.strip())
-                                current_sentence = ""
-                    
-                    # Add any remaining text
+        # Format transcription with bullet points
+        if transcription and len(transcription.strip()) > 0:
+            sentences = []
+            current_sentence = ""
+            
+            for char in transcription:
+                current_sentence += char
+                if char in '.!?' or (char == '\n' and current_sentence.strip()):
                     if current_sentence.strip():
                         sentences.append(current_sentence.strip())
-                    
-                    # Simple formatting with clean bullets
-                    if len(sentences) > 1:
-                        formatted_sentences = []
-                        for sentence in sentences:
-                            if sentence.strip():
-                                formatted_sentences.append(f"• {sentence.strip()}")
-                        transcription = "\n".join(formatted_sentences)
-                    
-                # Store in database (simple approach)
-                conn = init_db()
-                cursor = conn.cursor()
-                cursor.execute('''
-                    INSERT INTO transcriptions (filename, transcription, created_at)
-                    VALUES (?, ?, datetime('now'))
-                ''', (safe_filename, transcription))
-                
-                transcription_id = cursor.lastrowid
-                conn.commit()
-                conn.close()
-                
-                # Save transcription file for download
-                transcription_file = f"Results/transcription_{transcription_id}.txt"
-                with open(transcription_file, 'w', encoding='utf-8') as f:
-                    f.write(transcription)
-                
-                response = {
-                    'success': True,
-                    'transcription': transcription,
-                    'transcription_id': transcription_id,
-                    'filename': safe_filename,
-                    'download_url': f'/download/transcription/{transcription_id}'
-                }
-                
-            except Exception as e:
-                logger.error(f"Transcription failed: {str(e)}")
-                raise e
+                        current_sentence = ""
+            
+            if current_sentence.strip():
+                sentences.append(current_sentence.strip())
+            
+            if len(sentences) > 1:
+                formatted_sentences = []
+                for sentence in sentences:
+                    if sentence.strip():
+                        formatted_sentences.append(f"• {sentence.strip()}")
+                transcription = "\n".join(formatted_sentences)
+            
+            # Apply post-processing cleanup
+            logger.info("Applying post-processing cleanup...")
+            transcription = clean_transcription_artifacts(transcription)
+            logger.info(f"Cleaned transcription: {transcription[:100]}...")
+
+        # Store in database
+        conn = init_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO transcriptions (filename, transcription, created_at, file_size)
+            VALUES (?, ?, datetime('now'), ?)
+        ''', (safe_filename, transcription, file_size))
+        
+        transcription_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        # Save transcription file
+        transcription_file = f"Results/transcription_{transcription_id}.txt"
+        with open(transcription_file, 'w', encoding='utf-8') as f:
+            f.write(transcription)
 
         # Clean up temporary files
         try:
@@ -163,164 +343,26 @@ def upload_audio():
         except Exception as e:
             logger.warning(f"Failed to clean up temporary files: {str(e)}")
 
-        return jsonify(response), 200
+        return jsonify({
+            'success': True,
+            'transcription': transcription,
+            'transcription_id': transcription_id,
+            'filename': safe_filename,
+            'transcription_mode': used_mode,
+            'download_url': f'/download/transcription/{transcription_id}'
+        }), 200
         
     except Exception as e:
         logger.error(f"Error processing audio: {str(e)}")
         # Clean up files if they exist
         try:
-            if 'temp_file_path' in locals():
+            if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
             if 'upload_path' in locals() and os.path.exists(upload_path):
                 os.unlink(upload_path)
         except:
             pass
         return jsonify({'error': str(e)}), 500
-
-def add_speaker_labels_multilingual(transcription):
-    """Enhanced speaker labels for English/Tamil mixed conversations"""
-    # Clean up repetitive content first
-    transcription = clean_repetitive_content(transcription)
-    
-    # Split into sentences more intelligently for multilingual content
-    import re
-    # Enhanced sentence splitting for Tamil and English
-    sentences = re.split(r'[.!?।]+', transcription)  # Added Tamil punctuation
-    enhanced_lines = []
-    current_speaker = 1
-    word_count = 0
-    
-    # Tamil conversation markers that indicate speaker changes
-    tamil_question_words = ['என்ன', 'எப்படி', 'எங்கே', 'யார்', 'எப்போது']
-    english_question_words = ['what', 'how', 'where', 'who', 'when', 'why']
-    
-    for i, sentence in enumerate(sentences):
-        sentence = sentence.strip()
-        if not sentence or len(sentence) < 5:  # Skip very short segments
-            continue
-            
-        # Count words in this sentence
-        words = sentence.split()
-        word_count += len(words)
-        
-        # Enhanced speaker change detection for multilingual content
-        is_question = (
-            any(qword in sentence.lower() for qword in tamil_question_words) or
-            any(qword in sentence.lower() for qword in english_question_words) or
-            sentence.endswith('?')
-        )
-        
-        # Check for conversation starters
-        conversation_starters = ['அண்ணா', 'நான்', 'hello', 'hi', 'okay', 'yes', 'no', 'நன்றி', 'thanks']
-        has_starter = any(starter in sentence.lower() for starter in conversation_starters)
-        
-        # Switch speakers based on natural conversation patterns
-        if (word_count > 30 or  # After reasonable speech amount
-            is_question or      # Questions often indicate speaker change
-            has_starter or      # Conversation starters
-            (i > 0 and len(words) > 15)):  # Longer responses
-            current_speaker = 2 if current_speaker == 1 else 1
-            word_count = 0
-            
-        enhanced_lines.append(f"Person{current_speaker}: {sentence}.")
-    
-    return '\n\n'.join(enhanced_lines)
-
-def clean_repetitive_content(text):
-    """Remove repetitive sentences and clean up transcription"""
-    import re
-    
-    # Split into sentences
-    sentences = re.split(r'[.!?]+', text)
-    cleaned_sentences = []
-    seen_sentences = set()
-    
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-            
-        # Normalize sentence for comparison (remove extra spaces, case)
-        normalized = ' '.join(sentence.lower().split())
-        
-        # Skip if we've seen this exact sentence or very similar
-        if normalized not in seen_sentences and len(normalized) > 15:
-            cleaned_sentences.append(sentence)
-            seen_sentences.add(normalized)
-        elif len(cleaned_sentences) == 0:  # Keep first sentence even if short
-            cleaned_sentences.append(sentence)
-    
-    return '. '.join(cleaned_sentences)
-
-def detect_language_and_quality(transcription):
-    """Analyze transcription language and quality with enhanced Tamil detection"""
-    import re
-    
-    # Enhanced Tamil word detection with more comprehensive Tamil vocabulary
-    tamil_indicators = [
-        # Common Tamil words
-        'நான்', 'இந்த', 'அது', 'என்', 'இருக்கிறது', 'செய்', 'பார்க்க', 'வந்து', 'போக', 'சொல்ல', 
-        'கூட', 'மட்டும்', 'எல்லாம்', 'அவர்', 'நம்ம', 'உங்கள்', 'தான்', 'ஒரு', 'அண்ணா', 
-        'நாய்', 'நிமிடம்', 'சங்கம்', 'பாக்கும்', 'நன்றி',
-        # Additional Tamil words commonly used in speech
-        'என்ன', 'எப்படி', 'எங்கே', 'யார்', 'எப்போது', 'ஏன்', 'எத்தனை', 'எந்த',
-        'வர', 'போக', 'இல்ல', 'ஆம்', 'இல்லை', 'சரி', 'ஓகே', 'பண்ண', 'பண்றேன்',
-        'இருக்கு', 'இருக்கேன்', 'வந்து', 'போன', 'வேண்டும்', 'முடியும்', 'தெரியும்',
-        'பேசு', 'பேசறேன்', 'கேள்', 'சொல்', 'பார்', 'வா', 'போ', 'இரு'
-    ]
-    
-    english_indicators = [
-        'the', 'and', 'is', 'was', 'have', 'with', 'that', 'for', 'you', 'are', 'this', 
-        'will', 'can', 'about', 'they', 'from', 'there', 'been', 'time', 'would',
-        'hello', 'people', 'what', 'doing', 'going', 'record', 'audio', 'show', 
-        'speak', 'english', 'tamil', 'now', 'suddenly', 'switched', 'while', 'sure',
-        'right', 'eating', 'dosa', 'chutney'
-    ]
-    
-    # Count Tamil and English words with partial matching for Tamil
-    words = transcription.lower().split()
-    tamil_count = 0
-    english_count = 0
-    
-    for word in words:
-        # Tamil matching - check if word contains Tamil characters or words
-        if any(tamil_word in word for tamil_word in tamil_indicators):
-            tamil_count += 1
-        elif word in english_indicators:
-            english_count += 1
-    
-    # Enhanced language classification
-    total_detected = tamil_count + english_count
-    if total_detected == 0:
-        language = "Unknown"
-    elif tamil_count > english_count * 1.5:  # Higher threshold for Tamil
-        language = "Tamil"
-    elif english_count > tamil_count * 1.5:  # Higher threshold for English
-        language = "English"
-    else:
-        language = "Mixed English/Tamil"
-    
-    # Quality assessment
-    total_words = len(words)
-    unique_words = len(set(words))
-    repetition_ratio = 1 - (unique_words / total_words) if total_words > 0 else 0
-    
-    if repetition_ratio > 0.7:
-        quality = "Poor (High repetition)"
-    elif repetition_ratio > 0.5:
-        quality = "Fair (Some repetition)"
-    else:
-        quality = "Good"
-    
-    return {
-        'language': language,
-        'quality': quality,
-        'total_words': total_words,
-        'unique_words': unique_words,
-        'repetition_ratio': round(repetition_ratio, 2),
-        'tamil_words_detected': tamil_count,
-        'english_words_detected': english_count
-    }
 
 @app.route('/summarize', methods=['POST'])
 def summarize_transcription():
@@ -332,47 +374,48 @@ def summarize_transcription():
         if not transcription:
             return jsonify({'error': 'No transcription provided'}), 400
 
+        # Check if OpenAI API key is configured
         if not os.getenv('OPENAI_API_KEY'):
-            return jsonify({'error': 'OpenAI API key not configured'}), 500
+            return jsonify({'error': 'OpenAI API key required for summarization'}), 500
 
+        client = get_openai_client()
         logger.info("Generating summary with OpenAI GPT")
 
-        # Enhanced MOM prompt for speaker-aware transcriptions with Tamil/English support
         summary_prompt = f"""
-Please analyze the following meeting transcription with speaker identification and create a comprehensive Minutes of Meeting (MOM) summary.
+Create a clear, accurate meeting summary based ONLY on the content provided. Do not add information that is not explicitly mentioned in the transcription.
 
-Note: This transcription may contain English and Tamil languages mixed together. Please summarize in English while noting when Tamil was spoken.
+STRICT INSTRUCTIONS:
+- Only summarize what is actually said in the transcription
+- Do not invent or assume details not present
+- If speakers are not clearly identifiable, use "Speaker" or "Participant" 
+- Focus on factual content and actual decisions mentioned
+- Keep language natural and concise
+
+TRANSCRIPTION TO SUMMARIZE:
+{transcription}
+
+Please provide a summary in this format:
 
 ## Meeting Summary
 
-### Participants:
-- [List speakers identified: Person1, Person2, etc.]
+### Main Topics Discussed:
+[List only topics actually mentioned in the transcription]
 
-### Key Discussion Points:
-- [List main topics discussed with speaker attribution where relevant]
+### Key Points:
+[Bullet points of important information actually discussed]
 
-### Important Updates & Announcements:
-- [List status updates, announcements, decisions made]
+### Decisions or Actions Mentioned:
+[Only list decisions/actions explicitly stated in the conversation]
 
-### Action Items / Next Steps:
-- [List todo items, assignments, deadlines with person responsible if mentioned]
+### Technical Details:
+[Any technical information, features, or implementation details mentioned]
 
-### Decisions Made:
-- [List any concrete decisions or agreements reached]
+### Questions or Issues Raised:
+[Questions or concerns actually voiced in the discussion]
 
-### Questions & Concerns:
-- [List any questions raised or concerns discussed]
-
-### Language Notes:
-- [Note if Tamil was spoken and provide brief context]
-
-Speaker Transcription:
-{transcription}
-
-Please format the response clearly, focus on actionable items and key decisions, and use speaker attribution where helpful. If Tamil text appears unclear, note it as "[Tamil content - may need verification]".
+Important: Base this summary strictly on the provided transcription content. Do not extrapolate or add context not present in the original text.
 """
 
-        client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -396,7 +439,7 @@ Please format the response clearly, focus on actionable items and key decisions,
             # Save summary file
             summary_file = f"Results/summary_{transcription_id}.txt"
             with open(summary_file, 'w', encoding='utf-8') as f:
-                f.write(summary)
+                f.write(f"Generated using: OpenAI GPT-3.5\n\n{summary}")
 
         logger.info("Summary generated successfully")
 
@@ -440,7 +483,7 @@ def get_history():
     try:
         conn = init_db()
         c = conn.cursor()
-        c.execute("""SELECT id, filename, created_at, file_size, 
+        c.execute("""SELECT id, filename, created_at, file_size,
                      CASE WHEN summary IS NOT NULL THEN 1 ELSE 0 END as has_summary
                      FROM transcriptions ORDER BY created_at DESC""")
         
@@ -478,159 +521,95 @@ def health_check():
             'openai_configured': openai_configured,
             'service': 'OpenAI Whisper direct English transcription for Tamil-English mixed speech',
             'total_transcriptions': total_transcriptions,
-            'features': ['direct_english_transcription', 'tamil_english_mixed_support', 'clean_formatting', 'no_hallucination', 'download_history']
+            'features': [
+                'direct_english_transcription',
+                'tamil_english_mixed_support',
+                'clean_formatting',
+                'no_hallucination',
+                'download_history',
+                'post_processing_cleanup',
+                'enhanced_summary_accuracy',
+                'repetition_removal'
+            ]
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-def add_speaker_labels_smart(transcription):
-    """Simple clean transcription without speaker labels - just add message formatting"""
-    # Clean up repetitive content first
-    transcription = clean_repetitive_content(transcription)
-    
-    # Split into sentences and add simple message icons
-    import re
-    sentences = re.split(r'[.!?।]+', transcription)
-    formatted_lines = []
-    
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if sentence and len(sentence) > 5:  # Skip very short segments
-            # Add simple message icon instead of speaker labels
-            formatted_lines.append(f"💬 {sentence}.")
-    
-    return '\n\n'.join(formatted_lines)
-
-def is_single_speaker(transcription):
-    """Detect if transcription is likely from a single speaker"""
-    import re
-    
-    # Indicators that suggest single speaker
-    single_speaker_phrases = [
-        'i am going to', 'what i am going to do', 'i am speaking', 'i switched', 
-        'i can speak', 'i am not sure', 'right now i am', 'i speak both',
-        'நான் போவேன்', 'நான் செய்யப் போகிறேன்', 'நான் பேசுகிறேன்'
-    ]
-    
-    # Count single speaker indicators
-    single_indicators = sum(1 for phrase in single_speaker_phrases 
-                          if phrase in transcription.lower())
-    
-    # Check for conversation patterns (questions and responses)
-    questions = len(re.findall(r'[.!?।]', transcription))
-    conversation_words = ['hello people', 'what are you doing', 'this is what', 'now i can']
-    conversation_count = sum(1 for phrase in conversation_words 
-                           if phrase in transcription.lower())
-    
-    # Single speaker if more self-references than conversation patterns
-    return single_indicators > conversation_count or len(transcription.split()) < 50
-
-def add_speaker_labels(transcription):
-    """Original speaker labels function - kept for compatibility"""
-    return add_speaker_labels_multilingual(transcription)
-
-def is_poor_quality_transcription(text):
-    """Simplified quality check - focus on obvious garbled patterns"""
-    if not text or len(text.strip()) < 5:
-        return True
-    
-    # Check for excessive repetition (simplified)
-    words = text.lower().split()
-    if len(words) > 3:
-        unique_words = len(set(words))
-        repetition_ratio = 1 - (unique_words / len(words))
-        if repetition_ratio > 0.8:  # Only flag extreme repetition
-            return True
-    
-    # Check for obvious garbled patterns (simplified list)
-    obvious_garbled = [
-        'congratulations', 'you will you will', 'franklin',
-        'கண்டுபிரிந்தது', 'அகிலேஷ', 'ஏம்முறை', 'ஒன்ற்கான',
-        'kurejji', 'acrylic linked', 'டவன்'  # From your recent examples
-    ]
-    
-    text_lower = text.lower()
-    garbled_count = sum(1 for pattern in obvious_garbled if pattern in text_lower)
-    
-    # Only flag as poor if multiple garbled patterns found
-    return garbled_count >= 2
-
-def preprocess_audio_for_tamil(file_path):
-    """Preprocess audio file for better Tamil transcription (placeholder for future enhancement)"""
-    # For now, return the original file path
-    # Future: Could add noise reduction, volume normalization, etc.
-    return file_path
-
-def detect_likely_tamil_content(file_path):
-    """Try to detect if audio file likely contains Tamil content"""
-    # Since user is consistently getting garbled Tamil, assume Tamil content
-    # This is more effective than trying to analyze audio patterns
-    
-    # Check filename patterns that might indicate Tamil content
-    filename = os.path.basename(file_path).lower()
-    tamil_indicators = [
-        'tamil', 'ta', 'meeting', 'voice', 'record', 'audio',
-        'mya', 'myv', 'ramanujan', 'intellion'  # User's file patterns
-    ]
-    
-    filename_suggests_tamil = any(indicator in filename for indicator in tamil_indicators)
-    
-    # For this user's case, always return True since they're consistently 
-    # speaking Tamil/mixed content and getting garbled results
-    logger.info(f"Tamil detection: filename_suggests_tamil={filename_suggests_tamil}, defaulting to True for better Tamil handling")
-    
-    return True  # Always assume Tamil content for this user's workflow
-
-def contains_tamil_content(text):
-    """Check if text contains significant Tamil content"""
-    # Look for Tamil script characters
-    tamil_chars = 0
-    total_chars = 0
-    
-    for char in text:
-        if '\u0B80' <= char <= '\u0BFF':  # Tamil Unicode range
-            tamil_chars += 1
-        if char.isalpha():
-            total_chars += 1
-    
-    # If more than 30% Tamil characters, consider it Tamil content
-    if total_chars > 0:
-        tamil_ratio = tamil_chars / total_chars
-        return tamil_ratio > 0.3
-    
-    return False
-
-def translate_to_natural_english(tamil_text, client):
-    """Translate Tamil transcription to natural English"""
+@app.route('/set-transcription-mode', methods=['POST'])
+def set_transcription_mode():
+    """Set transcription mode dynamically"""
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a precise translator. Translate ONLY what is actually said in the Tamil text to English. Do NOT add any information, details, or interpretations that are not explicitly present in the original text. Keep English words as they are. Be literal and accurate, avoid creative interpretations or filling in gaps."
-                },
-                {
-                    "role": "user", 
-                    "content": f"Translate this Tamil text exactly as spoken, without adding anything: {tamil_text}"
-                }
-            ],
-            max_tokens=800,
-            temperature=0.1  # Lower temperature for more consistent, conservative translation
-        )
+        data = request.get_json()
+        new_mode = data.get('mode')
         
-        return response.choices[0].message.content.strip()
+        if new_mode not in ['online', 'offline', 'hybrid']:
+            return jsonify({'error': 'Invalid mode. Must be: online, offline, or hybrid'}), 400
+        
+        global TRANSCRIPTION_MODE
+        TRANSCRIPTION_MODE = new_mode
+        
+        # Check availability with new mode
+        offline_available = check_offline_availability()
+        online_available = check_online_availability()
+        
+        return jsonify({
+            'success': True,
+            'transcription_mode': TRANSCRIPTION_MODE,
+            'offline_available': offline_available,
+            'online_available': online_available,
+            'message': f'Transcription mode set to {new_mode.upper()}'
+        })
     except Exception as e:
-        logger.error(f"Translation failed: {str(e)}")
-        return None
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/transcription-status', methods=['GET'])
+def transcription_status():
+    """Get current transcription capabilities and mode"""
+    try:
+        offline_available = check_offline_availability()
+        online_available = check_online_availability()
+        
+        return jsonify({
+            'transcription_mode': TRANSCRIPTION_MODE,
+            'offline_available': offline_available,
+            'online_available': online_available,
+            'whisper_cpp_path': WHISPER_CPP_PATH if offline_available else None,
+            'whisper_model_path': WHISPER_MODEL_PATH if offline_available else None,
+            'capabilities': {
+                'can_transcribe': offline_available or online_available,
+                'preferred_mode': 'offline' if offline_available and TRANSCRIPTION_MODE in ['offline', 'hybrid'] else 'online',
+                'fallback_available': offline_available and online_available and TRANSCRIPTION_MODE == 'hybrid'
+            }
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    print("🎙️ Meeting Recorder - DIRECT ENGLISH TRANSCRIPTION")
-    print("📝 Features: Audio Upload → Direct English → No Translation → Summary")
-    print("🗃️  Accurate: Tamil speech directly transcribed to English (no hallucinations)")
-    print("🌍 DIRECT-ENGLISH: Speak Tamil, get accurate English transcripts immediately")
-    if not os.getenv('OPENAI_API_KEY'):
-        print("⚠️  Warning: OPENAI_API_KEY not set in environment variables")
-        print("   Create a .env file with: OPENAI_API_KEY=your_api_key_here")
-    print("🌐 Server starting at: http://localhost:9000")
+    # Initialize database
+    init_db()
+    
+    # Check transcription capabilities
+    offline_available = check_offline_availability()
+    online_available = check_online_availability()
+    
+    # Print startup information
+    mode_str = f"Mode: {TRANSCRIPTION_MODE.upper()}"
+    capability_str = []
+    
+    if offline_available:
+        capability_str.append("Offline✓")
+    if online_available:
+        capability_str.append("Online✓")
+    
+    if not capability_str:
+        capability_str.append("No transcription available")
+    
+    capabilities = " | ".join(capability_str)
+    
+    print(f"🎙️ Meeting Recorder: Tamil→English | {mode_str} | {capabilities} | http://localhost:9000")
+    
+    if not offline_available and not online_available:
+        print("⚠️  ERROR: No transcription method available!")
+        print("   Set OPENAI_API_KEY or ensure whisper.cpp is built")
+    
     app.run(host='0.0.0.0', port=9000, debug=False) 

@@ -337,7 +337,7 @@ struct TranscriptionHistory: Codable, Identifiable {
     let id: Int
     let filename: String
     let createdAt: String
-    let fileSize: Int
+    let fileSize: Int?
     let hasSummary: Bool
     let transcriptionUrl: String
     let summaryUrl: String?
