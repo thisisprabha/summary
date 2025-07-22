@@ -591,8 +591,8 @@
             document.getElementById('uploadButton').disabled = true;
 
             fetch('/upload', {
-                method: 'POST',
-                body: formData
+                    method: 'POST',
+                    body: formData
             })
             .then(response => response.json())
             .then(data => {

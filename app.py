@@ -24,7 +24,8 @@ app = Flask(__name__, static_folder='static', static_url_path='')
 # Configuration for transcription modes
 TRANSCRIPTION_MODE = os.getenv('TRANSCRIPTION_MODE', 'hybrid')  # 'online', 'offline', 'hybrid'
 WHISPER_CPP_PATH = os.getenv('WHISPER_CPP_PATH', './whisper.cpp/build/bin/whisper-cli')
-WHISPER_MODEL_PATH = os.getenv('WHISPER_MODEL_PATH', './whisper.cpp/models/ggml-base.bin')
+# Default to medium model for much better accuracy (closer to OpenAI quality)
+WHISPER_MODEL_PATH = os.getenv('WHISPER_MODEL_PATH', './whisper.cpp/models/ggml-medium.bin')
 
 # Initialize OpenAI client lazily
 _openai_client = None
@@ -52,7 +53,16 @@ def check_online_availability():
 def transcribe_offline(audio_file_path, language="en"):
     """Transcribe audio using local whisper.cpp"""
     try:
-        logger.info(f"OFFLINE MODE: Using local whisper.cpp for transcription")
+        # Determine which model to use (fallback to base if medium not available)
+        model_path = WHISPER_MODEL_PATH
+        if not os.path.exists(model_path) and "medium" in model_path:
+            base_model_path = model_path.replace("medium", "base")
+            if os.path.exists(base_model_path):
+                model_path = base_model_path
+                logger.warning(f"Medium model not found, falling back to base model")
+        
+        model_name = os.path.basename(model_path)
+        logger.info(f"OFFLINE MODE: Using local whisper.cpp with {model_name} model for transcription")
         
         # Check if audio format conversion is needed
         supported_formats = ['.flac', '.mp3', '.ogg', '.wav']
@@ -82,20 +92,40 @@ def transcribe_offline(audio_file_path, language="en"):
                 raise Exception(f"Unsupported format {file_ext} and no ffmpeg available for conversion")
         
         # Prepare whisper-cli command (updated syntax)
-        cmd = [
-            WHISPER_CPP_PATH,
-            '-m', WHISPER_MODEL_PATH,
-            '-f', working_file,
-            '-l', language,
-            '-t', '4',  # Use 4 threads
-            '--output-txt',  # Output text format
-            '--no-prints'    # Suppress verbose output
-        ]
+        # Optimize command based on model type and file size
+        file_size_mb = os.path.getsize(working_file) / (1024 * 1024)
         
-        logger.info(f"Running whisper-cli: {' '.join(cmd)}")
+        if "medium" in model_path:
+            # Medium model optimizations
+            threads = '8' if file_size_mb < 10 else '6'  # Reduce threads for large files
+            timeout = 600 if file_size_mb < 10 else 900  # 10-15 minutes for large files
+            cmd = [
+                WHISPER_CPP_PATH,
+                '-m', model_path,
+                '-f', working_file,
+                '-l', language,
+                '-t', threads,
+                '--output-txt',
+                '--no-prints'
+            ]
+        else:
+            # Base/small model
+            timeout = 300  # 5 minutes
+            cmd = [
+                WHISPER_CPP_PATH,
+                '-m', model_path,
+                '-f', working_file,
+                '-l', language,
+                '-t', '4',
+                '--output-txt',
+                '--no-prints'
+            ]
         
-        # Run whisper-cli
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        logger.info(f"Running whisper-cli with {model_name} model (file: {file_size_mb:.1f}MB, timeout: {timeout}s)")
+        logger.info(f"Command: {' '.join(cmd)}")
+        
+        # Run whisper-cli with appropriate timeout
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         
         if result.returncode != 0:
             raise Exception(f"Whisper-cli failed: {result.stderr}")
